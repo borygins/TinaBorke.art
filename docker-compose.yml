@@ -1,0 +1,215 @@
+# Docker Compose для TinaBorke.Art
+
+version: '3.8'
+
+services:
+  # Веб-приложение FastAPI
+  api:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=sqlite:///./data/tinaborke.db
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - ADMIN_TELEGRAM_ID=${ADMIN_TELEGRAM_ID}
+      - STAFF_TELEGRAM_IDS=${STAFF_TELEGRAM_IDS}
+      - SECRET_KEY=${SECRET_KEY}
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - WEBHOOK_URL=${WEBHOOK_URL}
+    volumes:
+      - ./backend:/app
+      - api_data:/app/data
+      - ./frontend/static:/app/static
+      - ./frontend/templates:/app/templates
+    restart: unless-stopped
+    depends_on:
+      - redis
+    networks:
+      - tinaborke_network
+
+  # Redis для кэширования (опционально)
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    networks:
+      - tinaborke_network
+
+  # Nginx reverse proxy
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./frontend/static:/var/www/static:ro
+      - ./ssl:/etc/nginx/ssl:ro  # Для SSL сертификатов
+    depends_on:
+      - api
+    restart: unless-stopped
+    networks:
+      - tinaborke_network
+
+  # PostgreSQL (альтернатива SQLite для продакшена)
+  # Раскомментировать если нужна PostgreSQL
+  # postgres:
+  #   image: postgres:15-alpine
+  #   environment:
+  #     POSTGRES_DB: tinaborke
+  #     POSTGRES_USER: tinaborke_user
+  #     POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   ports:
+  #     - "5432:5432"
+  #   restart: unless-stopped
+  #   networks:
+  #     - tinaborke_network
+
+volumes:
+  api_data:
+  redis_data:
+  # postgres_data:
+
+networks:
+  tinaborke_network:
+    driver: bridge
+
+---
+
+# Docker Compose для разработки
+# docker-compose.dev.yml
+
+version: '3.8'
+
+services:
+  api:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=sqlite:///./data/tinaborke.db
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - ADMIN_TELEGRAM_ID=${ADMIN_TELEGRAM_ID}
+      - STAFF_TELEGRAM_IDS=${STAFF_TELEGRAM_IDS}
+      - SECRET_KEY=dev-secret-key
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - WEBHOOK_URL=
+    volumes:
+      - ./backend:/app
+      - ./frontend/static:/app/static
+      - ./frontend/templates:/app/templates
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    networks:
+      - tinaborke_dev
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - tinaborke_dev
+
+networks:
+  tinaborke_dev:
+    driver: bridge
+
+---
+
+# Docker Compose для продакшена
+# docker-compose.prod.yml
+
+version: '3.8'
+
+services:
+  api:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - ADMIN_TELEGRAM_ID=${ADMIN_TELEGRAM_ID}
+      - STAFF_TELEGRAM_IDS=${STAFF_TELEGRAM_IDS}
+      - SECRET_KEY=${SECRET_KEY}
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - WEBHOOK_URL=${WEBHOOK_URL}
+      - REDIS_URL=redis://redis:6379
+    volumes:
+      - ./frontend/static:/app/static:ro
+      - ./frontend/templates:/app/templates:ro
+    restart: unless-stopped
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - tinaborke_prod
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - tinaborke_prod
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    networks:
+      - tinaborke_prod
+    command: redis-server --appendonly yes
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - ./frontend/static:/var/www/static:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    depends_on:
+      - api
+    restart: unless-stopped
+    networks:
+      - tinaborke_prod
+
+  # Certbot для SSL сертификатов
+  certbot:
+    image: certbot/certbot
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt
+      - /var/www/certbot:/var/www/certbot
+    command: certonly --webroot --webroot-path=/var/www/certbot --email ${SSL_EMAIL} --agree-tos --no-eff-email -d ${DOMAIN}
+    networks:
+      - tinaborke_prod
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  tinaborke_prod:
+    driver: bridge

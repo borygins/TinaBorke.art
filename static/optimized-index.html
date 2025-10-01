@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="description" content="Профессиональный визажист-гример Тина Борке в Санкт-Петербурге. Создаю уникальные образы с душой для любых мероприятий.">
+    <meta name="keywords" content="визажист, гример, макияж, Санкт-Петербург, свадебный макияж, лифтинг макияж, TinaBorke">
+    <meta name="author" content="Тина Борке">
+    
+    <!-- Open Graph -->
+    <meta property="og:title" content="TinaBorke.Art - Визажист-гример в СПб">
+    <meta property="og:description" content="Профессиональный визаж и грим для любых мероприятий">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://tinaborke.art">
+    
+    <!-- PWA -->
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#d4af37">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    <title>TinaBorke.Art - Визажист-гример в Санкт-Петербурге</title>
+    <link rel="stylesheet" href="/static/css/optimized-styles.css">
+    <link rel="icon" type="image/x-icon" href="/static/images/favicon.ico">
+    
+    <!-- Preload critical resources -->
+    <link rel="preload" href="/static/js/optimized-app.js" as="script">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;550;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header" id="header">
+        <div class="header__container">
+            <a href="#hero" class="header__logo">TinaBorke.Art</a>
+            
+            <!-- Desktop Navigation -->
+            <nav class="header__nav" id="headerNav">
+                <ul class="nav-list">
+                    <li><a href="#about" class="nav-link">Обо мне</a></li>
+                    <li><a href="#services" class="nav-link">Услуги</a></li>
+                    <li><a href="#events" class="nav-link">Мероприятия</a></li>
+                    <li><a href="#" class="nav-link" data-page="portfolio">Портфолио</a></li>
+                    <li><a href="#reviews" class="nav-link">Отзывы</a></li>
+                    <li><a href="#" class="nav-link" data-page="blog">Блог</a></li>
+                    <li><a href="#contacts" class="nav-link">Контакты</a></li>
+                    <li><a href="#booking" class="nav-link btn btn--primary">Записаться</a></li>
+                </ul>
+            </nav>
+            
+            <!-- Mobile Burger Menu -->
+            <button class="header__burger" id="burger" aria-label="Открыть меню" aria-expanded="false">
+                <span></span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+        <!-- Hero Section -->
+        <section class="hero" id="hero">
+            <div class="hero__bg"></div>
+            <div class="hero__content">
+                <h1 class="hero__title">Создаю уникальные образы с душой</h1>
+                <p class="hero__subtitle">Профессиональный визажист-гример в Санкт-Петербурге</p>
+                <a href="#booking" class="btn btn--primary">Записаться на процедуру</a>
+            </div>
+        </section>
+
+        <!-- About Section -->
+        <section class="about section" id="about">
+            <div class="container">
+                <div class="section-header">
+                    <h2 class="section-title">Привет! Меня зовут Тина!</h2>
+                    <p class="section-subtitle">Я профессиональный визажист-гример! Работаю легко и с любовью, использую качественные продукты - профессиональную косметику и инструменты. Ваше настроение от полученного образа для меня главный приоритет!</p>
+                </div>
+                
+                <div class="advantages">
+                    <div class="advantage">
+                        <div class="advantage__icon">💄</div>
+                        <div class="advantage__content">
+                            <h3>Профессиональная косметика</h3>
+                            <p>Использую только качественные продукты ведущих брендов</p>
+                        </div>
+                    </div>
+                    <div class="advantage">
+                        <div class="advantage__icon">✨</div>
+                        <div class="advantage__content">
+                            <h3>Индивидуальный подход</h3>
+                            <p>Создаю образы, подчеркивающие вашу естественную красоту</p>
+                        </div>
+                    </div>
+                    <div class="advantage">
+                        <div class="advantage__icon">🏆</div>
+                        <div class="advantage__content">
+                            <h3>Опыт и мастерство</h3>
+                            <p>Годы практики в сфере визажа и театрального грима</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Services Section -->
+        <section class="services section" id="services">
+            <div class="container">
+                <div class="section-header">
+                    <h2 class="section-title">Мои услуги</h2>
+                    <p class="section-subtitle">Полный спектр услуг визажа и грима для любых случаев</p>
+                </div>
+
+                <div class="services__grid">
+                    <div class="service-card">
+                        <h3>Дневной макияж</h3>
+                        <p>Естественный и свежий образ для повседневной жизни</p>
+                        <div class="service-price">от 3000 ₽</div>
+                    </div>
+                    <div class="service-card">
+                        <h3>Вечерний макияж</h3>
+                        <p>Элегантный образ для особых мероприятий</p>
+                        <div class="service-price">от 4000 ₽</div>
+                    </div>
+                    <div class="service-card featured">
+                        <h3>ЛИФТИНГ макияж</h3>
+                        <p>Специальная техника для женщин 50+ с омолаживающим эффектом</p>
+                        <div class="service-price">от 5000 ₽</div>
+                        <div class="service-badge">Хит</div>
+                    </div>
+                    <div class="service-card">
+                        <h3>Свадебный образ</h3>
+                        <p>Романтичный и воздушный образ для самого важного дня</p>
+                        <div class="service-price">от 8000 ₽</div>
+                    </div>
+                    <div class="service-card">
+                        <h3>Макияж для фотосессии</h3>
+                        <p>Образ, который выделит вас в кадре</p>
+                        <div class="service-price">от 4500 ₽</div>
+                    </div>
+                    <div class="service-card">
+                        <h3>Грим театра и кино</h3>
+                        <p>Художественный грим для сценических образов</p>
+                        <div class="service-price">от 6000 ₽</div>
+                    </div>
+                </div>
+
+                <div class="services__discount">
+                    <p>🍂 <strong>Скидка 10% осенью на все услуги!</strong> Успейте записаться до конца сезона.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Events Section -->
+        <section class="events section" id="events">
+            <div class="container">
+                <div class="section-header">
+                    <h2 class="section-title">Работаю на мероприятиях</h2>
+                    <p class="section-subtitle">Профессиональные услуги визажа для различных событий</p>
+                </div>
+
+                <div class="events__grid">
+                    <div class="event-card">
+                        <div class="event-icon">💒</div>
+                        <h3>Свадьбы</h3>
+                        <p>Создание романтичных и воздушных образов для самого важного дня</p>
+                    </div>
+                    <div class="event-card">
+                        <div class="event-icon">📸</div>
+                        <h3>Фотосъёмки</h3>
+                        <p>Макияж для выделения в кадре и создания эффектных снимков</p>
+                    </div>
+                    <div class="event-card">
+                        <div class="event-icon">🎭</div>
+                        <h3>Театральные постановки</h3>
+                        <p>Художественный грим и создание сценических образов</p>
+                    </div>
+                    <div class="event-card event-card--centered">
+                        <div class="event-icon">🤸‍♀️</div>
+                        <h3>Спортивные соревнования</h3>
+                        <p>Специальные образы для гимнасток и спортсменок</p>
+                    </div>
+                </div>
+
+                <div class="events__info">
+                    <p><strong>Место работы:</strong> Санкт-Петербург и Ленинградская область</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Reviews Section -->
+        <section class="reviews section" id="reviews">
+            <div class="container">
+                <div class="section-header">
+                    <h2 class="section-title">Что говорят мои клиенты</h2>
+                    <div class="reviews__avito-link">
+                        <a href="https://www.avito.ru/sankt-peterburg/predlozheniya_uslug/vizazhistmakiyazhpricheskiukladkisvadebnyy_stilist_7398583171" target="_blank" class="btn btn--secondary">
+                            Смотреть все отзывы на Авито
+                        </a>
+                    </div>
+                </div>
+
+                <div class="reviews__grid">
+                    <div class="review-card">
+                        <div class="review-author">Анна</div>
+                        <div class="review-text">"Тина - настоящий профессионал! Лифтинг-макияж превзошёл все ожидания. Выглядела на 10 лет моложе!"</div>
+                        <div class="review-rating">⭐⭐⭐⭐⭐</div>
+                    </div>
+                    <div class="review-card">
+                        <div class="review-author">Мария</div>
+                        <div class="review-text">"Свадебный образ был просто волшебным! Тина учла все мои пожелания и создала идеальный look"</div>
+                        <div class="review-rating">⭐⭐⭐⭐⭐</div>
+                    </div>
+                    <div class="review-card">
+                        <div class="review-author">Елена</div>
+                        <div class="review-text">"Отличный мастер! Стерильность на высоте, результат потрясающий. Обязательно вернусь ещё!"</div>
+                        <div class="review-rating">⭐⭐⭐⭐⭐</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Contacts Section -->
+        <section class="contacts section" id="contacts">
+            <div class="container">
+                <div class="section-header">
+                    <h2 class="section-title">Контакты</h2>
+                </div>
+
+                <div class="contacts__grid">
+                    <div class="contact-block">
+                        <h3>Адрес студии</h3>
+                        <p>Санкт-Петербург, ул. Всеволода Вишневского, дом 11</p>
+                    </div>
+                    <div class="contact-block">
+                        <h3>Телефон</h3>
+                        <p><a href="tel:+79000000000">+7 (900) 000-00-00</a></p>
+                    </div>
+                    <div class="contact-block">
+                        <h3>Telegram</h3>
+                        <p><a href="https://t.me/TinaBorkeMakeUp" target="_blank">@TinaBorkeMakeUp</a></p>
+                    </div>
+                    <div class="contact-block contact-block--centered">
+                        <h3>Выезд</h3>
+                        <p>Санкт-Петербург и Ленинградская область</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Booking Section -->
+        <section class="booking section" id="booking">
+            <div class="container">
+                <div class="section-header">
+                    <h2 class="section-title">Запишитесь на консультацию</h2>
+                    <p class="section-subtitle">При записи укажите дату, время готовности и желательно референс образа</p>
+                </div>
+
+                <div class="booking__form-container">
+                    <form class="booking__form" id="bookingForm">
+                        <div class="form-group">
+                            <label for="name" class="form-label">Имя *</label>
+                            <input type="text" id="name" name="name" class="form-input" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="phone" class="form-label">Телефон *</label>
+                            <input type="tel" id="phone" name="phone" class="form-input" placeholder="+7 (___) ___-__-__" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="service" class="form-label">Услуга</label>
+                            <select id="service" name="service" class="form-input">
+                                <option value="">Выберите услугу</option>
+                                <option value="Дневной макияж">Дневной макияж</option>
+                                <option value="Вечерний макияж">Вечерний макияж</option>
+                                <option value="ЛИФТИНГ макияж">ЛИФТИНГ макияж</option>
+                                <option value="Свадебный образ">Свадебный образ</option>
+                                <option value="Макияж для фотосессии">Макияж для фотосессии</option>
+                                <option value="Грим театра и кино">Грим театра и кино</option>
+                                <option value="Другое">Другое</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="date" class="form-label">Желаемая дата</label>
+                            <input type="date" id="date" name="date" class="form-input">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="message" class="form-label">Дополнительная информация</label>
+                            <textarea id="message" name="message" class="form-input" rows="4" placeholder="Расскажите о желаемом образе, времени, особых пожеланиях..."></textarea>
+                        </div>
+
+                        <button type="submit" class="btn btn--primary btn--large">Отправить заявку</button>
+                    </form>
+
+                    <div class="booking__info">
+                        <p><strong>Время работы:</strong> от 1 до 2,5 часов в зависимости от задачи</p>
+                        <p><strong>Важно:</strong> Бронь даты по предоплате! В случае отмены записи менее чем за 2 недели, предоплата не возвращается.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer__content">
+                <div class="footer__section">
+                    <h3>TinaBorke.Art</h3>
+                    <p>Профессиональный визажист-гример</p>
+                    <p>Создаю уникальные образы с душой</p>
+                </div>
+                
+                <div class="footer__section">
+                    <h3>Контакты</h3>
+                    <p>Санкт-Петербург</p>
+                    <p><a href="tel:+79000000000">+7 (900) 000-00-00</a></p>
+                    <p><a href="https://t.me/TinaBorkeMakeUp" target="_blank">Telegram</a></p>
+                </div>
+                
+                <div class="footer__section">
+                    <h3>Быстрая запись</h3>
+                    <form class="quick-booking-form" id="quickBookingForm">
+                        <input type="text" name="name" placeholder="Имя" class="form-input form-input--small" required>
+                        <input type="tel" name="phone" placeholder="Телефон" class="form-input form-input--small" required>
+                        <input type="date" name="date" class="form-input form-input--small">
+                        <button type="submit" class="btn btn--secondary btn--small">Записаться</button>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="footer__bottom">
+                <p>&copy; 2024 TinaBorke.Art. Все права защищены.</p>
+                <p>Сайт создан с любовью к красоте</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Modals -->
+    <!-- Portfolio Modal -->
+    <div class="modal hidden" id="portfolioModal">
+        <div class="modal__backdrop">
+            <div class="modal__content">
+                <div class="modal__header">
+                    <h3>Портфолио</h3>
+                    <button class="modal__close" onclick="closeModal('portfolioModal')">&times;</button>
+                </div>
+                <div class="modal__body">
+                    <div class="placeholder-content">
+                        <div class="placeholder-icon">📸</div>
+                        <h4>Мои работы</h4>
+                        <p>Галерея лучших образов и работ находится в моём Telegram-канале.</p>
+                        <div class="placeholder-links">
+                            <h5>Где посмотреть портфолио:</h5>
+                            <p>Фотографии моих работ, процесс создания образов и результаты вы можете увидеть в официальном канале.</p>
+                            <a href="https://t.me/TinaBorkeMakeUp" target="_blank" class="portfolio-cloud-btn">
+                                Посмотреть портфолио в Telegram
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Blog Modal -->
+    <div class="modal hidden" id="blogModal">
+        <div class="modal__backdrop">
+            <div class="modal__content">
+                <div class="modal__header">
+                    <h3>Блог</h3>
+                    <button class="modal__close" onclick="closeModal('blogModal')">&times;</button>
+                </div>
+                <div class="modal__body">
+                    <div class="placeholder-content">
+                        <div class="placeholder-icon">📝</div>
+                        <h4>Мой блог о красоте</h4>
+                        <p>Советы по макияжу, новинки косметики, секреты мастерства и многое другое!</p>
+                        <div class="placeholder-links">
+                            <h5>Читайте в Telegram:</h5>
+                            <p>Регулярно делюсь полезными советами, показываю процесс работы и рассказываю о новых техниках в визаже.</p>
+                            <a href="https://t.me/TinaBorkeMakeUp" target="_blank" class="blog-telegram-btn">
+                                Читать блог в Telegram
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/static/js/optimized-app.js"></script>
+</body>
+</html>
