@@ -460,7 +460,7 @@ async def general_exception_handler(request: Request, exc: Exception):
         }
     )
 
-# ========== ЗАПУСК ПРИЛОЖЕНИЯ =========
+# ========== ЗАПУСК ПРИЛОЖЕНИЯ ==========
 if __name__ == "__main__":
     import uvicorn
 
