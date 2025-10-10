@@ -87,37 +87,29 @@ window.closeModal = closeModal;
 // Navigation functionality
 function initNavigation() {
     // Mobile menu toggle
-    burger.addEventListener('click', toggleMobileMenu);
+    if (burger) {
+        burger.addEventListener('click', toggleMobileMenu);
+    }
 
     // Handle navigation links
     navLinks.forEach(link => {
         link.addEventListener('click', (e) => {
-            e.preventDefault();
-
             // Check if it's a modal link
             if (link.hasAttribute('data-page')) {
+                e.preventDefault();
                 const page = link.getAttribute('data-page');
                 if (page === 'portfolio') {
                     openModal('portfolioModal');
                 } else if (page === 'blog') {
                     openModal('blogModal');
                 }
-            } else {
-                // Regular anchor link
-                const targetId = link.getAttribute('href');
-                const targetSection = document.querySelector(targetId);
-
-                if (targetSection) {
-                    targetSection.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'start'
-                    });
-                }
             }
 
-            // Close mobile menu
-            navList.classList.remove('active');
-            burger.classList.remove('active');
+            // Close mobile menu if open
+            if (navList.classList.contains('active')) {
+                navList.classList.remove('active');
+                burger.classList.remove('active');
+            }
         });
     });
 
@@ -126,11 +118,26 @@ function initNavigation() {
 
     // Active link highlighting
     window.addEventListener('scroll', highlightActiveLink);
+
+    // Close menu when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!header.contains(e.target) && navList.classList.contains('active')) {
+            navList.classList.remove('active');
+            burger.classList.remove('active');
+        }
+    });
 }
 
 function toggleMobileMenu() {
     navList.classList.toggle('active');
     burger.classList.toggle('active');
+
+    // Prevent body scroll when menu is open
+    if (navList.classList.contains('active')) {
+        document.body.style.overflow = 'hidden';
+    } else {
+        document.body.style.overflow = 'auto';
+    }
 }
 
 function handleHeaderScroll() {
