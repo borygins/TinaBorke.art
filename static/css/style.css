@@ -1858,3 +1858,55 @@ html {
 body {
     position: relative;
 }
+
+/* Desktop Styles */
+@media (min-width: 769px) {
+    .header__nav {
+        display: flex !important; /* Показываем меню на десктопе */
+    }
+
+    .header__burger {
+        display: none !important; /* Скрываем бургер на десктопе */
+    }
+
+    .nav-list {
+        position: static;
+        flex-direction: row;
+        background: none;
+        padding: 0;
+        transform: none;
+        opacity: 1;
+        visibility: visible;
+    }
+}
+
+/* Mobile Styles */
+@media (max-width: 768px) {
+    .header__nav {
+        display: block;
+    }
+
+    .header__burger {
+        display: flex !important;
+    }
+
+    .nav-list {
+        flex-direction: column;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: var(--dark-bg-primary);
+        padding: var(--space-20);
+        transform: translateY(-100%);
+        opacity: 0;
+        visibility: hidden;
+        transition: all var(--duration-normal) var(--ease-standard);
+    }
+
+    .nav-list.active {
+        transform: translateY(0);
+        opacity: 1;
+        visibility: visible;
+    }
+}

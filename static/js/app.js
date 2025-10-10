@@ -54,6 +54,13 @@ function initModals() {
         }
     });
 
+    // Обработчик для восстановления прокрутки при закрытии модалок
+    document.querySelectorAll('.modal__close, .btn--secondary').forEach(button => {
+        button.addEventListener('click', function() {
+            document.body.style.overflow = 'auto';
+        });
+    });
+
     // Close button functionality
     document.querySelectorAll('.modal__close').forEach(button => {
         button.addEventListener('click', function() {
@@ -93,25 +100,38 @@ function initNavigation() {
 
     // Handle navigation links
     navLinks.forEach(link => {
-        link.addEventListener('click', (e) => {
-            // Check if it's a modal link
-            if (link.hasAttribute('data-page')) {
-                e.preventDefault();
-                const page = link.getAttribute('data-page');
-                if (page === 'portfolio') {
-                    openModal('portfolioModal');
-                } else if (page === 'blog') {
-                    openModal('blogModal');
-                }
-            }
+    link.addEventListener('click', (e) => {
+        e.preventDefault();
 
-            // Close mobile menu if open
-            if (navList.classList.contains('active')) {
-                navList.classList.remove('active');
-                burger.classList.remove('active');
+        // Check if it's a modal link
+        if (link.hasAttribute('data-page')) {
+            const page = link.getAttribute('data-page');
+            if (page === 'portfolio') {
+                openModal('portfolioModal');
+            } else if (page === 'blog') {
+                openModal('blogModal');
             }
-        });
+        } else {
+            // Regular anchor link
+            const targetId = link.getAttribute('href');
+            const targetSection = document.querySelector(targetId);
+
+            if (targetSection) {
+                targetSection.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }
+        }
+
+        // Close mobile menu и ВОССТАНАВЛИВАЕМ прокрутку
+        if (navList.classList.contains('active')) {
+            navList.classList.remove('active');
+            burger.classList.remove('active');
+            document.body.style.overflow = 'auto'; // ← ВАЖНО: восстанавливаем прокрутку
+        }
     });
+});
 
     // Header scroll effect
     window.addEventListener('scroll', handleHeaderScroll);
@@ -129,17 +149,18 @@ function initNavigation() {
 }
 
 function toggleMobileMenu() {
+    const isOpening = !navList.classList.contains('active');
+
     navList.classList.toggle('active');
     burger.classList.toggle('active');
 
-    // Prevent body scroll when menu is open
-    if (navList.classList.contains('active')) {
+    // Блокируем прокрутку ТОЛЬКО когда открываем меню
+    if (isOpening) {
         document.body.style.overflow = 'hidden';
     } else {
         document.body.style.overflow = 'auto';
     }
 }
-
 function handleHeaderScroll() {
     if (window.scrollY > 100) {
         header.style.background = 'rgba(26, 26, 26, 0.98)';
