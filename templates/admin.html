@@ -5,8 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex,nofollow">
     <title>Админка TinaBorke.Art</title>
+    {% include "_favicon.html" %}
     <link rel="stylesheet" href="/static/css/style.css">
-    <link rel="stylesheet" href="/static/css/admin.css?v=3">
+    <link rel="stylesheet" href="/static/css/admin.css?v=4">
 </head>
 <body class="admin-page">
     <main class="admin-shell">
@@ -27,19 +28,34 @@
             <a href="#blog">Блог</a>
         </nav>
 
+        {% macro text_editor(title, name, value, rows=4, empty_text='Не заполнено', placeholder='') -%}
+        <details class="admin-description-editor admin-wide">
+            <summary>
+                <span class="admin-summary-text">{{ title }}: {{ value[:140] if value else empty_text }}</span>
+                <span class="admin-edit-icon" aria-hidden="true">✎</span>
+            </summary>
+            <label>{{ title }}
+                <textarea name="{{ name }}" rows="{{ rows }}"{% if placeholder %} placeholder="{{ placeholder }}"{% endif %}>{{ value or '' }}</textarea>
+            </label>
+        </details>
+        {%- endmacro %}
+
         <section class="admin-panel" id="settings">
             <h2>Настройки и SEO</h2>
             <form method="post" action="/admin/settings" class="admin-form">
-                {% for key, label in {
-                    'master_name':'Имя мастера', 'city':'Город', 'phone':'Телефон', 'contact_email':'Email',
-                    'telegram_url':'Ссылка на Telegram', 'working_hours':'Часы работы',
-                    'area_served':'Районы выезда', 'promo_text':'Текст акции',
-                    'home_title':'Заголовок главной для Яндекса и Google', 'home_description':'Описание главной для Яндекса и Google',
-                    'blog_title':'Заголовок блога для Яндекса и Google', 'blog_description':'Описание блога для Яндекса и Google'
-                }.items() %}
-                <label>{{ label }}<input name="{{ key }}" value="{{ site_settings.get(key, '') }}"></label>
-                {% endfor %}
-                <label class="admin-wide">О себе<textarea name="about_text" rows="5">{{ site_settings.about_text }}</textarea></label>
+                <label>Имя мастера<input name="master_name" value="{{ site_settings.get('master_name', '') }}"></label>
+                <label>Город<input name="city" value="{{ site_settings.get('city', '') }}"></label>
+                <label>Телефон<input name="phone" value="{{ site_settings.get('phone', '') }}"></label>
+                <label>Email<input name="contact_email" value="{{ site_settings.get('contact_email', '') }}"></label>
+                <label class="admin-wide">Ссылка на Telegram<input name="telegram_url" value="{{ site_settings.get('telegram_url', '') }}"></label>
+                {{ text_editor('Часы работы', 'working_hours', site_settings.get('working_hours', ''), 3, 'Не заполнено', 'Например: ежедневно по предварительной записи') }}
+                {{ text_editor('Районы выезда', 'area_served', site_settings.get('area_served', ''), 3, 'Не заполнено', 'Например: Санкт-Петербург и ближайшие районы') }}
+                {{ text_editor('Текст акции', 'promo_text', site_settings.get('promo_text', ''), 3, 'Не заполнено', 'Например: Скидка 10% на свадебный образ до конца месяца') }}
+                {{ text_editor('Заголовок главной для Яндекса и Google', 'home_title', site_settings.get('home_title', ''), 3, 'Не заполнено') }}
+                {{ text_editor('Описание главной для Яндекса и Google', 'home_description', site_settings.get('home_description', ''), 4, 'Не заполнено') }}
+                {{ text_editor('Заголовок блога для Яндекса и Google', 'blog_title', site_settings.get('blog_title', ''), 3, 'Не заполнено') }}
+                {{ text_editor('Описание блога для Яндекса и Google', 'blog_description', site_settings.get('blog_description', ''), 4, 'Не заполнено') }}
+                {{ text_editor('О себе', 'about_text', site_settings.get('about_text', ''), 6, 'Не заполнено', 'Коротко расскажите о мастере, подходе и опыте') }}
                 <p class="admin-help admin-wide">Заголовок и описание для поиска видны в результатах Яндекса/Google и помогают клиентам понять, что предлагает сайт.</p>
                 <button class="btn btn--primary" type="submit">Сохранить настройки</button>
             </form>
@@ -63,8 +79,8 @@
                 <label class="admin-wide">Короткое описание услуги<textarea name="description" rows="3" placeholder="Например: выразительный образ для события, съемки или вечера"></textarea></label>
                 <label class="admin-wide">Что входит в услугу<textarea name="service_includes" rows="5" placeholder="Пишите каждый пункт с новой строки: обсуждение образа, подбор оттенков, работа профессиональными продуктами"></textarea></label>
                 <label class="admin-wide">Кому подходит<textarea name="suitable_for" rows="3" placeholder="Опишите, для каких случаев и клиентов подходит эта услуга"></textarea></label>
-                <label>Заголовок для поиска<input name="seo_title" placeholder="Можно оставить как название услуги"></label>
-                <label>Описание для поиска<input name="seo_description" placeholder="Короткое описание для Яндекса/Google"></label>
+                <label class="admin-wide">Заголовок для поиска<textarea name="seo_title" rows="2" placeholder="Можно оставить как название услуги"></textarea></label>
+                <label class="admin-wide">Описание для поиска<textarea name="seo_description" rows="3" placeholder="Короткое описание для Яндекса/Google"></textarea></label>
                 <label class="admin-check"><input type="checkbox" name="is_hit"> Хит услуги</label>
                 <label class="admin-check"><input type="checkbox" name="is_active" checked> Показывать</label>
                 <p class="admin-help admin-wide">Адрес страницы нужен для красивой ссылки. Если оставить пустым, сайт создаст его сам из названия услуги.</p>
@@ -86,20 +102,11 @@
                             {% endfor %}
                         </select>
                     </label>
-                    <details class="admin-description-editor admin-wide">
-                        <summary>Описание: {{ service.description[:110] if service.description else 'Описание не заполнено' }} <span aria-hidden="true">✎</span></summary>
-                        <label>Текст описания<textarea name="description" rows="4">{{ service.description }}</textarea></label>
-                    </details>
-                    <details class="admin-description-editor admin-wide">
-                        <summary>Что входит: {{ service.service_includes[:110] if service.service_includes else 'Пункты не заполнены' }} <span aria-hidden="true">✎</span></summary>
-                        <label>Пункты услуги<textarea name="service_includes" rows="5" placeholder="Каждый пункт с новой строки">{{ service.service_includes }}</textarea></label>
-                    </details>
-                    <details class="admin-description-editor admin-wide">
-                        <summary>Кому подходит: {{ service.suitable_for[:110] if service.suitable_for else 'Текст не заполнен' }} <span aria-hidden="true">✎</span></summary>
-                        <label>Текст блока<textarea name="suitable_for" rows="4">{{ service.suitable_for }}</textarea></label>
-                    </details>
-                    <label>Заголовок для поиска<input name="seo_title" value="{{ service.seo_title }}"></label>
-                    <label>Описание для поиска<input name="seo_description" value="{{ service.seo_description }}"></label>
+                    {{ text_editor('Описание', 'description', service.description, 4, 'Описание не заполнено') }}
+                    {{ text_editor('Что входит', 'service_includes', service.service_includes, 5, 'Пункты не заполнены', 'Каждый пункт с новой строки') }}
+                    {{ text_editor('Кому подходит', 'suitable_for', service.suitable_for, 4, 'Текст не заполнен') }}
+                    {{ text_editor('Заголовок для поиска', 'seo_title', service.seo_title, 3, 'Заголовок не заполнен') }}
+                    {{ text_editor('Описание для поиска', 'seo_description', service.seo_description, 4, 'Описание не заполнено') }}
                     <label class="admin-check"><input type="checkbox" name="is_hit" {% if service.is_hit %}checked{% endif %}> Хит</label>
                     <label class="admin-check"><input type="checkbox" name="is_active" {% if service.is_active %}checked{% endif %}> Видна</label>
                     <button class="btn btn--primary" type="submit">Сохранить</button>
@@ -129,7 +136,7 @@
                     <label>Название<input name="title" value="{{ category.title }}"></label>
                     <label>Адрес страницы<input name="slug" value="{{ category.slug }}"></label>
                     <label>Порядок<input name="sort_order" type="number" value="{{ category.sort_order }}"></label>
-                    <label>Описание<textarea name="description" rows="2">{{ category.description }}</textarea></label>
+                    {{ text_editor('Описание раздела', 'description', category.description, 4, 'Описание не заполнено') }}
                     <label class="admin-check"><input type="checkbox" name="is_active" {% if category.is_active %}checked{% endif %}> Видим</label>
                     <button class="btn btn--primary" type="submit">Сохранить раздел</button>
                 </form>
@@ -154,8 +161,8 @@
                         {% endfor %}
                     </select>
                 </label>
-                <label>Описание фото<input name="alt_text" placeholder="Например: вечерний макияж с сияющей кожей"></label>
                 <label>Порядок показа<input name="sort_order" type="number" value="100"></label>
+                <label class="admin-wide">Описание фото<textarea name="alt_text" rows="2" placeholder="Например: вечерний макияж с сияющей кожей"></textarea></label>
                 <button class="btn btn--primary" type="submit">Загрузить фото</button>
             </form>
 
@@ -180,8 +187,8 @@
                             {% endfor %}
                         </select>
                     </label>
-                    <label>Описание фото<input name="alt_text" value="{{ photo.alt_text }}"></label>
                     <label>Порядок<input name="sort_order" type="number" value="{{ photo.sort_order }}"></label>
+                    {{ text_editor('Описание фото', 'alt_text', photo.alt_text, 3, 'Описание не заполнено') }}
                     <label class="admin-check"><input type="checkbox" name="is_active" {% if photo.is_active %}checked{% endif %}> Видна</label>
                     <button class="btn btn--primary" type="submit">Сохранить</button>
                 </form>
@@ -194,8 +201,8 @@
             <h2>Галерея</h2>
             <form method="post" action="/admin/gallery/upload" enctype="multipart/form-data" class="admin-form">
                 <label>Фото работы<input type="file" name="image" accept=".jpg,.jpeg,.png,.webp" required></label>
-                <label>Описание фото<input name="alt_text" placeholder="Например: свадебный макияж в нежных тонах"></label>
                 <label>Порядок показа<input name="sort_order" type="number" value="100"></label>
+                <label class="admin-wide">Описание фото<textarea name="alt_text" rows="2" placeholder="Например: свадебный макияж в нежных тонах"></textarea></label>
                 <p class="admin-help admin-wide">Описание фото помогает клиентам и поисковикам понять, что изображено на фотографии.</p>
                 <button class="btn btn--primary" type="submit">Загрузить фото</button>
             </form>
@@ -204,8 +211,8 @@
                 <form method="post" action="/admin/gallery/save" class="admin-photo">
                     <img src="{{ item.image_path }}" alt="{{ item.alt_text }}" loading="lazy">
                     <input type="hidden" name="id" value="{{ item.id }}">
-                    <label>Описание фото<input name="alt_text" value="{{ item.alt_text }}"></label>
                     <label>Порядок показа<input name="sort_order" type="number" value="{{ item.sort_order }}"></label>
+                    {{ text_editor('Описание фото', 'alt_text', item.alt_text, 3, 'Описание не заполнено') }}
                     <label class="admin-check"><input type="checkbox" name="is_active" {% if item.is_active %}checked{% endif %}> Видна</label>
                     <button class="btn btn--primary" type="submit">Сохранить</button>
                 </form>
@@ -245,7 +252,7 @@
                         {% endfor %}
                     </select>
                 </label>
-                <label>Текст<textarea name="text" rows="2">{{ review.text }}</textarea></label>
+                {{ text_editor('Текст отзыва', 'text', review.text, 4, 'Текст не заполнен') }}
                 <label class="admin-check"><input type="checkbox" name="is_active" {% if review.is_active %}checked{% endif %}> Видим</label>
                 <button class="btn btn--primary" type="submit">Сохранить</button>
             </form>
@@ -257,13 +264,13 @@
             <h2>Блог</h2>
             <form method="post" action="/admin/blog/import"><button class="btn btn--primary" type="submit">Запустить импорт Telegram сейчас</button></form>
             <form method="post" action="/admin/blog/save" class="admin-form">
-                <label>Заголовок поста<input name="title" placeholder="Например: Как подготовиться к свадебному макияжу" required></label>
+                <label class="admin-wide">Заголовок поста<textarea name="title" rows="2" placeholder="Например: Как подготовиться к свадебному макияжу" required></textarea></label>
                 <label>Адрес страницы<input name="slug" placeholder="Можно оставить пустым"></label>
                 <label>Номер поста в Telegram<input name="telegram_message_id" placeholder="Заполняется при импорте"></label>
                 <label>Дата публикации<input name="created_at" placeholder="Например: 2026-06-08 12:00:00"></label>
                 <label class="admin-wide">Текст поста<textarea name="text_markdown" rows="5" placeholder="Текст статьи или поста"></textarea></label>
-                <label>Заголовок для поиска<input name="seo_title" placeholder="Можно оставить как заголовок поста"></label>
-                <label>Описание для поиска<input name="seo_description" placeholder="Короткое описание для Яндекса/Google"></label>
+                <label class="admin-wide">Заголовок для поиска<textarea name="seo_title" rows="2" placeholder="Можно оставить как заголовок поста"></textarea></label>
+                <label class="admin-wide">Описание для поиска<textarea name="seo_description" rows="3" placeholder="Короткое описание для Яндекса/Google"></textarea></label>
                 <label class="admin-check"><input type="checkbox" name="is_visible" checked> Показывать</label>
                 <p class="admin-help admin-wide">Номер поста в Telegram нужен сайту, чтобы не импортировать один и тот же пост повторно. При ручном добавлении его можно не заполнять.</p>
                 <button class="btn btn--primary" type="submit">Добавить пост</button>
@@ -271,13 +278,13 @@
             {% for post in posts %}
             <form method="post" action="/admin/blog/save" class="admin-row">
                 <input type="hidden" name="id" value="{{ post.id }}">
-                <label>Заголовок<input name="title" value="{{ post.title }}"></label>
                 <label>Адрес страницы<input name="slug" value="{{ post.slug }}"></label>
                 <label>Номер в Telegram<input name="telegram_message_id" value="{{ post.telegram_message_id or '' }}"></label>
                 <label>Дата<input name="created_at" value="{{ post.created_at }}"></label>
-                <label>Текст<textarea name="text_markdown" rows="3">{{ post.text_markdown }}</textarea></label>
-                <label>Заголовок для поиска<input name="seo_title" value="{{ post.seo_title }}"></label>
-                <label>Описание для поиска<input name="seo_description" value="{{ post.seo_description }}"></label>
+                {{ text_editor('Заголовок', 'title', post.title, 3, 'Заголовок не заполнен') }}
+                {{ text_editor('Текст', 'text_markdown', post.text_markdown, 6, 'Текст не заполнен') }}
+                {{ text_editor('Заголовок для поиска', 'seo_title', post.seo_title, 3, 'Заголовок не заполнен') }}
+                {{ text_editor('Описание для поиска', 'seo_description', post.seo_description, 4, 'Описание не заполнено') }}
                 <label class="admin-check"><input type="checkbox" name="is_visible" {% if post.is_visible %}checked{% endif %}> Видим</label>
                 <button class="btn btn--primary" type="submit">Сохранить</button>
             </form>

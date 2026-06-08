@@ -7,7 +7,7 @@ from fastapi import FastAPI, HTTPException, BackgroundTasks, Request, Depends, U
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse, FileResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from contextlib import asynccontextmanager
 import logging
@@ -1069,6 +1069,10 @@ async def service_page(request: Request, slug: str):
 @app.get("/robots.txt", response_class=PlainTextResponse)
 async def robots_txt():
     return f"User-agent: *\nDisallow: /admin\nAllow: /\n\nSitemap: {settings.BASE_URL}/sitemap.xml\n"
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon_ico():
+    return FileResponse("static/images/favicon.ico", media_type="image/x-icon")
 
 @app.get("/sitemap.xml", response_class=PlainTextResponse)
 async def sitemap_xml():
