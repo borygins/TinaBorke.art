@@ -25,7 +25,9 @@
                 <h2>Контакты</h2>
                 <p><a href="tel:{{ site_settings.phone|replace(' ', '')|replace('-', '') }}">{{ site_settings.phone }}</a></p>
                 {% if site_settings.contact_email %}<p><a href="mailto:{{ site_settings.contact_email }}">{{ site_settings.contact_email }}</a></p>{% endif %}
-                <p><a href="{{ site_settings.telegram_url }}">Telegram</a></p>
+                {% for social in social_links %}
+                <p><a href="{{ social.url }}" target="_blank" rel="noopener">{{ social.label }}</a></p>
+                {% endfor %}
             </div>
         </section>
     </main>

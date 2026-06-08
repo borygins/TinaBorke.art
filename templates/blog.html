@@ -20,7 +20,7 @@
         <div class="blog-grid">
             {% for post in posts %}
             <article class="blog-card">
-                {% if post.first_image %}<img src="{{ post.first_image }}" alt="{{ post.title }}" loading="lazy">{% endif %}
+                {% if post.preview_image %}<img class="blog-card__image" src="{{ post.preview_image }}" alt="{{ post.title }}" loading="lazy">{% endif %}
                 <time>{{ post.created_at }}</time>
                 <h2>{{ post.title }}</h2>
                 <p>{{ post.seo_description or post.text_markdown[:180] }}</p>

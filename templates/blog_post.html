@@ -23,7 +23,7 @@
             {% if post.photos %}
             <div class="article-gallery">
                 {% for photo in post.photos %}
-                <img src="{{ photo.image_path }}" alt="{{ post.title }}" loading="lazy">
+                <img src="{{ photo.image_path }}" alt="{{ photo.alt_text or post.title }}" loading="lazy">
                 {% endfor %}
             </div>
             {% endif %}

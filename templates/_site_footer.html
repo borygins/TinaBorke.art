@@ -9,7 +9,14 @@
             {% if site_settings.contact_email %}
             <a href="mailto:{{ site_settings.contact_email }}">{{ site_settings.contact_email }}</a>
             {% endif %}
+            {% if site_settings.telegram_url %}
             <a href="{{ site_settings.telegram_url }}" target="_blank" rel="noopener">Telegram</a>
+            {% endif %}
+            {% for social in social_links or [] %}
+            {% if social.label != 'Telegram' %}
+            <a href="{{ social.url }}" target="_blank" rel="noopener">{{ social.label }}</a>
+            {% endif %}
+            {% endfor %}
         </div>
     </div>
 </footer>

@@ -7,25 +7,32 @@
     <title>Админка TinaBorke.Art</title>
     {% include "_favicon.html" %}
     <link rel="stylesheet" href="/static/css/style.css">
-    <link rel="stylesheet" href="/static/css/admin.css?v=4">
+    <link rel="stylesheet" href="/static/css/admin.css?v=5">
 </head>
 <body class="admin-page">
     <main class="admin-shell">
         <header class="admin-header">
             <div>
                 <h1>Админка сайта</h1>
-                <p>Контент, услуги, отзывы, галерея, блог и SEO.</p>
+                <p>Управление сайтом без длинной ленты: вкладки, компактные списки и диагностика.</p>
             </div>
             <a class="btn btn--secondary" href="/">На сайт</a>
         </header>
 
+        {% set tabs = [
+            ('settings', 'Настройки'),
+            ('home', 'Главная'),
+            ('services', 'Услуги'),
+            ('portfolio', 'Портфолио'),
+            ('reviews', 'Отзывы'),
+            ('blog', 'Блог'),
+            ('seo', 'SEO'),
+            ('telegram', 'Telegram')
+        ] %}
         <nav class="admin-tabs" aria-label="Разделы админки">
-            <a href="#settings">Настройки</a>
-            <a href="#services">Услуги</a>
-            <a href="#portfolio">Портфолио</a>
-            <a href="#gallery">Галерея</a>
-            <a href="#reviews">Отзывы</a>
-            <a href="#blog">Блог</a>
+            {% for tab_id, tab_label in tabs %}
+            <a href="/admin?tab={{ tab_id }}" class="{% if active_tab == tab_id %}is-active{% endif %}">{{ tab_label }}</a>
+            {% endfor %}
         </nav>
 
         {% macro text_editor(title, name, value, rows=4, empty_text='Не заполнено', placeholder='') -%}
@@ -40,34 +47,57 @@
         </details>
         {%- endmacro %}
 
-        <section class="admin-panel" id="settings">
-            <h2>Настройки и SEO</h2>
+        {% macro service_group_label(value) -%}
+            {{ 'Дополнительная' if value == 'additional' else 'Основная' }}
+        {%- endmacro %}
+
+        <section class="admin-panel {% if active_tab != 'settings' %}is-hidden{% endif %}" id="settings">
+            <h2>Настройки</h2>
             <form method="post" action="/admin/settings" class="admin-form">
+                <input type="hidden" name="tab" value="settings">
                 <label>Имя мастера<input name="master_name" value="{{ site_settings.get('master_name', '') }}"></label>
-                <label>Город<input name="city" value="{{ site_settings.get('city', '') }}"></label>
+                <label>Город / адрес<input name="city" value="{{ site_settings.get('city', '') }}"></label>
                 <label>Телефон<input name="phone" value="{{ site_settings.get('phone', '') }}"></label>
                 <label>Email<input name="contact_email" value="{{ site_settings.get('contact_email', '') }}"></label>
-                <label class="admin-wide">Ссылка на Telegram<input name="telegram_url" value="{{ site_settings.get('telegram_url', '') }}"></label>
-                {{ text_editor('Часы работы', 'working_hours', site_settings.get('working_hours', ''), 3, 'Не заполнено', 'Например: ежедневно по предварительной записи') }}
-                {{ text_editor('Районы выезда', 'area_served', site_settings.get('area_served', ''), 3, 'Не заполнено', 'Например: Санкт-Петербург и ближайшие районы') }}
-                {{ text_editor('Текст акции', 'promo_text', site_settings.get('promo_text', ''), 3, 'Не заполнено', 'Например: Скидка 10% на свадебный образ до конца месяца') }}
-                {{ text_editor('Заголовок главной для Яндекса и Google', 'home_title', site_settings.get('home_title', ''), 3, 'Не заполнено') }}
-                {{ text_editor('Описание главной для Яндекса и Google', 'home_description', site_settings.get('home_description', ''), 4, 'Не заполнено') }}
-                {{ text_editor('Заголовок блога для Яндекса и Google', 'blog_title', site_settings.get('blog_title', ''), 3, 'Не заполнено') }}
-                {{ text_editor('Описание блога для Яндекса и Google', 'blog_description', site_settings.get('blog_description', ''), 4, 'Не заполнено') }}
-                {{ text_editor('О себе', 'about_text', site_settings.get('about_text', ''), 6, 'Не заполнено', 'Коротко расскажите о мастере, подходе и опыте') }}
-                <p class="admin-help admin-wide">Заголовок и описание для поиска видны в результатах Яндекса/Google и помогают клиентам понять, что предлагает сайт.</p>
+                <label class="admin-wide">Telegram<input name="telegram_url" value="{{ site_settings.get('telegram_url', '') }}"></label>
+                <label class="admin-wide">Авито<input name="social_avito_url" value="{{ site_settings.get('social_avito_url', '') }}"></label>
+                <label class="admin-wide">ВКонтакте<input name="social_vk_url" value="{{ site_settings.get('social_vk_url', '') }}"></label>
+                <label class="admin-wide">TikTok<input name="social_tiktok_url" value="{{ site_settings.get('social_tiktok_url', '') }}"></label>
+                {{ text_editor('Часы работы', 'working_hours', site_settings.get('working_hours', ''), 3) }}
+                {{ text_editor('Районы выезда', 'area_served', site_settings.get('area_served', ''), 3) }}
+                {{ text_editor('О себе', 'about_text', site_settings.get('about_text', ''), 6) }}
                 <button class="btn btn--primary" type="submit">Сохранить настройки</button>
             </form>
         </section>
 
-        <section class="admin-panel" id="services">
+        <section class="admin-panel {% if active_tab != 'home' %}is-hidden{% endif %}" id="home">
+            <h2>Главная</h2>
+            <form method="post" action="/admin/settings" class="admin-form">
+                <input type="hidden" name="tab" value="home">
+                {{ text_editor('Текст акции', 'promo_text', site_settings.get('promo_text', ''), 3) }}
+                {{ text_editor('Текст под акцией 1', 'homepage_intro_line_1', site_settings.get('homepage_intro_line_1', ''), 3) }}
+                {{ text_editor('Текст под акцией 2', 'homepage_intro_line_2', site_settings.get('homepage_intro_line_2', ''), 3) }}
+                {{ text_editor('Заголовок главной для Яндекса и Google', 'home_title', site_settings.get('home_title', ''), 3) }}
+                {{ text_editor('Описание главной для Яндекса и Google', 'home_description', site_settings.get('home_description', ''), 4) }}
+                <p class="admin-help admin-wide">Эти строки выводятся в первом экране между акцией и кнопкой записи.</p>
+                <button class="btn btn--primary" type="submit">Сохранить главную</button>
+            </form>
+        </section>
+
+        <section class="admin-panel {% if active_tab != 'services' %}is-hidden{% endif %}" id="services">
             <h2>Услуги</h2>
             <form method="post" action="/admin/services/save" class="admin-form">
                 <label>Название услуги<input name="title" placeholder="Например: Вечерний макияж" required></label>
                 <label>Адрес страницы<input name="slug" placeholder="Можно оставить пустым"></label>
                 <label>Цена<input name="price" placeholder="Например: от 3 000 ₽"></label>
-                <label>Порядок показа<input name="sort_order" type="number" value="100" placeholder="100"></label>
+                <label>Время выполнения<input name="duration" placeholder="Например: 1 час 30 минут"></label>
+                <label>Порядок<input name="sort_order" type="number" value="100"></label>
+                <label>Блок на главной
+                    <select name="service_group">
+                        <option value="main">Основные услуги</option>
+                        <option value="additional">Дополнительные услуги</option>
+                    </select>
+                </label>
                 <label>Категория портфолио
                     <select name="portfolio_category_id">
                         <option value="">Не выбрана</option>
@@ -76,76 +106,105 @@
                         {% endfor %}
                     </select>
                 </label>
-                <label class="admin-wide">Короткое описание услуги<textarea name="description" rows="3" placeholder="Например: выразительный образ для события, съемки или вечера"></textarea></label>
-                <label class="admin-wide">Что входит в услугу<textarea name="service_includes" rows="5" placeholder="Пишите каждый пункт с новой строки: обсуждение образа, подбор оттенков, работа профессиональными продуктами"></textarea></label>
-                <label class="admin-wide">Кому подходит<textarea name="suitable_for" rows="3" placeholder="Опишите, для каких случаев и клиентов подходит эта услуга"></textarea></label>
-                <label class="admin-wide">Заголовок для поиска<textarea name="seo_title" rows="2" placeholder="Можно оставить как название услуги"></textarea></label>
-                <label class="admin-wide">Описание для поиска<textarea name="seo_description" rows="3" placeholder="Короткое описание для Яндекса/Google"></textarea></label>
-                <label class="admin-check"><input type="checkbox" name="is_hit"> Хит услуги</label>
+                <label class="admin-check"><input type="checkbox" name="is_popular"> Популярная</label>
+                <label class="admin-check"><input type="checkbox" name="is_hit"> Хит</label>
                 <label class="admin-check"><input type="checkbox" name="is_active" checked> Показывать</label>
-                <p class="admin-help admin-wide">Адрес страницы нужен для красивой ссылки. Если оставить пустым, сайт создаст его сам из названия услуги.</p>
+                <label class="admin-wide">Короткое описание услуги<textarea name="description" rows="3"></textarea></label>
+                <label class="admin-wide">Что входит в услугу<textarea name="service_includes" rows="5" placeholder="Каждый пункт с новой строки"></textarea></label>
+                <label class="admin-wide">Кому подходит<textarea name="suitable_for" rows="3"></textarea></label>
+                <label class="admin-wide">Заголовок для поиска<textarea name="seo_title" rows="2"></textarea></label>
+                <label class="admin-wide">Описание для поиска<textarea name="seo_description" rows="3"></textarea></label>
                 <button class="btn btn--primary" type="submit">Добавить услугу</button>
             </form>
-            <div class="admin-list">
+
+            <div class="admin-compact-list">
                 {% for service in services %}
-                <form method="post" action="/admin/services/save" class="admin-row">
-                    <input type="hidden" name="id" value="{{ service.id }}">
-                    <label>Название<input name="title" value="{{ service.title }}"></label>
-                    <label>Адрес страницы<input name="slug" value="{{ service.slug }}"></label>
-                    <label>Цена<input name="price" value="{{ service.price }}"></label>
-                    <label>Порядок<input name="sort_order" type="number" value="{{ service.sort_order }}"></label>
-                    <label>Категория портфолио
-                        <select name="portfolio_category_id">
-                            <option value="">Не выбрана</option>
-                            {% for category in portfolio_categories %}
-                            <option value="{{ category.id }}" {% if service.portfolio_category_id == category.id %}selected{% endif %}>{{ category.title }}</option>
-                            {% endfor %}
-                        </select>
-                    </label>
-                    {{ text_editor('Описание', 'description', service.description, 4, 'Описание не заполнено') }}
-                    {{ text_editor('Что входит', 'service_includes', service.service_includes, 5, 'Пункты не заполнены', 'Каждый пункт с новой строки') }}
-                    {{ text_editor('Кому подходит', 'suitable_for', service.suitable_for, 4, 'Текст не заполнен') }}
-                    {{ text_editor('Заголовок для поиска', 'seo_title', service.seo_title, 3, 'Заголовок не заполнен') }}
-                    {{ text_editor('Описание для поиска', 'seo_description', service.seo_description, 4, 'Описание не заполнено') }}
-                    <label class="admin-check"><input type="checkbox" name="is_hit" {% if service.is_hit %}checked{% endif %}> Хит</label>
-                    <label class="admin-check"><input type="checkbox" name="is_active" {% if service.is_active %}checked{% endif %}> Видна</label>
-                    <button class="btn btn--primary" type="submit">Сохранить</button>
-                </form>
-                <form method="post" action="/admin/services/{{ service.id }}/delete"><button class="btn btn--secondary" type="submit">Удалить</button></form>
+                <details class="admin-compact-item">
+                    <summary>
+                        <span class="admin-row-title">{{ service.title }}</span>
+                        <span>{{ service.price or 'Цена не указана' }}</span>
+                        <span>{{ service.duration or 'Время не указано' }}</span>
+                        <span>{% if service.is_popular %}Популярная{% else %}{{ service_group_label(service.service_group) }}{% endif %}</span>
+                        <span>{% if service.is_hit %}Хит{% else %}Обычная{% endif %}</span>
+                        <span>{% if service.is_active %}Видима{% else %}Скрыта{% endif %}</span>
+                    </summary>
+                    <form method="post" action="/admin/services/save" class="admin-form admin-form--inside">
+                        <input type="hidden" name="id" value="{{ service.id }}">
+                        <label>Название<input name="title" value="{{ service.title }}"></label>
+                        <label>Адрес страницы<input name="slug" value="{{ service.slug }}"></label>
+                        <label>Цена<input name="price" value="{{ service.price }}"></label>
+                        <label>Время выполнения<input name="duration" value="{{ service.duration }}"></label>
+                        <label>Порядок<input name="sort_order" type="number" value="{{ service.sort_order }}"></label>
+                        <label>Блок на главной
+                            <select name="service_group">
+                                <option value="main" {% if service.service_group == 'main' %}selected{% endif %}>Основные услуги</option>
+                                <option value="additional" {% if service.service_group == 'additional' %}selected{% endif %}>Дополнительные услуги</option>
+                            </select>
+                        </label>
+                        <label>Категория портфолио
+                            <select name="portfolio_category_id">
+                                <option value="">Не выбрана</option>
+                                {% for category in portfolio_categories %}
+                                <option value="{{ category.id }}" {% if service.portfolio_category_id == category.id %}selected{% endif %}>{{ category.title }}</option>
+                                {% endfor %}
+                            </select>
+                        </label>
+                        <label class="admin-check"><input type="checkbox" name="is_popular" {% if service.is_popular %}checked{% endif %}> Популярная</label>
+                        <label class="admin-check"><input type="checkbox" name="is_hit" {% if service.is_hit %}checked{% endif %}> Хит</label>
+                        <label class="admin-check"><input type="checkbox" name="is_active" {% if service.is_active %}checked{% endif %}> Видна</label>
+                        {{ text_editor('Описание', 'description', service.description, 4) }}
+                        {{ text_editor('Что входит', 'service_includes', service.service_includes, 5, 'Пункты не заполнены', 'Каждый пункт с новой строки') }}
+                        {{ text_editor('Кому подходит', 'suitable_for', service.suitable_for, 4) }}
+                        {{ text_editor('Заголовок для поиска', 'seo_title', service.seo_title, 3) }}
+                        {{ text_editor('Описание для поиска', 'seo_description', service.seo_description, 4) }}
+                        <button class="btn btn--primary" type="submit">Сохранить услугу</button>
+                    </form>
+                    <form method="post" action="/admin/services/{{ service.id }}/delete" class="admin-delete-form">
+                        <button class="btn btn--secondary" type="submit">Удалить</button>
+                    </form>
+                </details>
                 {% endfor %}
             </div>
         </section>
 
-        <section class="admin-panel" id="portfolio">
+        <section class="admin-panel {% if active_tab != 'portfolio' %}is-hidden{% endif %}" id="portfolio">
             <h2>Портфолио</h2>
-            <p class="admin-help">Здесь можно создать разделы портфолио и загрузить фото работ. Разделы показываются на странице `/portfolio`.</p>
+            <p class="admin-help">Раздел «Галерея» убран из интерфейса. Все работы ведутся через портфолио.</p>
 
             <form method="post" action="/admin/portfolio/categories/save" class="admin-form">
                 <label>Название раздела<input name="title" placeholder="Например: Свадебный макияж" required></label>
                 <label>Адрес страницы<input name="slug" placeholder="Можно оставить пустым"></label>
-                <label>Порядок показа<input name="sort_order" type="number" value="100"></label>
-                <label class="admin-wide">Описание раздела<textarea name="description" rows="3" placeholder="Коротко опишите этот тип работ"></textarea></label>
+                <label>Порядок<input name="sort_order" type="number" value="100"></label>
+                <label class="admin-wide">Описание раздела<textarea name="description" rows="3"></textarea></label>
                 <label class="admin-check"><input type="checkbox" name="is_active" checked> Показывать</label>
                 <button class="btn btn--primary" type="submit">Добавить раздел</button>
             </form>
 
-            <div class="admin-list">
+            <div class="admin-compact-list">
                 {% for category in portfolio_categories %}
-                <form method="post" action="/admin/portfolio/categories/save" class="admin-row">
-                    <input type="hidden" name="id" value="{{ category.id }}">
-                    <label>Название<input name="title" value="{{ category.title }}"></label>
-                    <label>Адрес страницы<input name="slug" value="{{ category.slug }}"></label>
-                    <label>Порядок<input name="sort_order" type="number" value="{{ category.sort_order }}"></label>
-                    {{ text_editor('Описание раздела', 'description', category.description, 4, 'Описание не заполнено') }}
-                    <label class="admin-check"><input type="checkbox" name="is_active" {% if category.is_active %}checked{% endif %}> Видим</label>
-                    <button class="btn btn--primary" type="submit">Сохранить раздел</button>
-                </form>
+                <details class="admin-compact-item">
+                    <summary>
+                        <span class="admin-row-title">{{ category.title }}</span>
+                        <span>{{ category.photo_count }} фото</span>
+                        <span>Порядок: {{ category.sort_order }}</span>
+                        <span>{% if category.is_active %}Видим{% else %}Скрыт{% endif %}</span>
+                    </summary>
+                    <form method="post" action="/admin/portfolio/categories/save" class="admin-form admin-form--inside">
+                        <input type="hidden" name="id" value="{{ category.id }}">
+                        <label>Название<input name="title" value="{{ category.title }}"></label>
+                        <label>Адрес страницы<input name="slug" value="{{ category.slug }}"></label>
+                        <label>Порядок<input name="sort_order" type="number" value="{{ category.sort_order }}"></label>
+                        {{ text_editor('Описание раздела', 'description', category.description, 4) }}
+                        <label class="admin-check"><input type="checkbox" name="is_active" {% if category.is_active %}checked{% endif %}> Видим</label>
+                        <button class="btn btn--primary" type="submit">Сохранить раздел</button>
+                    </form>
+                </details>
                 {% endfor %}
             </div>
 
             <form method="post" action="/admin/portfolio/upload" enctype="multipart/form-data" class="admin-form">
                 <label>Фото работы<input type="file" name="image" accept=".jpg,.jpeg,.png,.webp" required></label>
-                <label>Раздел портфолио
+                <label>Раздел
                     <select name="category_id" required>
                         <option value="">Выберите раздел</option>
                         {% for category in portfolio_categories %}
@@ -161,72 +220,89 @@
                         {% endfor %}
                     </select>
                 </label>
-                <label>Порядок показа<input name="sort_order" type="number" value="100"></label>
-                <label class="admin-wide">Описание фото<textarea name="alt_text" rows="2" placeholder="Например: вечерний макияж с сияющей кожей"></textarea></label>
+                <label>Порядок<input name="sort_order" type="number" value="100"></label>
+                <label class="admin-wide">Описание фото<textarea name="alt_text" rows="2"></textarea></label>
                 <button class="btn btn--primary" type="submit">Загрузить фото</button>
             </form>
 
-            <div class="admin-gallery">
+            <div class="admin-filter-note">Показаны последние 30 фото. Миниатюры открывают окно действий.</div>
+            <div class="admin-photo-filters" aria-label="Фильтры портфолио">
+                <label>Категория
+                    <select data-portfolio-filter="category">
+                        <option value="">Все</option>
+                        {% for category in portfolio_categories %}
+                        <option value="{{ category.id }}">{{ category.title }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label>Услуга
+                    <select data-portfolio-filter="service">
+                        <option value="">Все</option>
+                        {% for service in services %}
+                        <option value="{{ service.id }}">{{ service.title }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label>Видимость
+                    <select data-portfolio-filter="visible">
+                        <option value="">Все</option>
+                        <option value="1">Видимые</option>
+                        <option value="0">Скрытые</option>
+                    </select>
+                </label>
+            </div>
+            <div class="admin-photo-grid">
                 {% for photo in portfolio_photos %}
-                <form method="post" action="/admin/portfolio/save" class="admin-photo">
-                    <img src="{{ photo.image_path }}" alt="{{ photo.alt_text }}" loading="lazy">
-                    <input type="hidden" name="id" value="{{ photo.id }}">
-                    <label>Раздел
-                        <select name="category_id">
-                            <option value="">Не выбран</option>
-                            {% for category in portfolio_categories %}
-                            <option value="{{ category.id }}" {% if photo.category_id == category.id %}selected{% endif %}>{{ category.title }}</option>
-                            {% endfor %}
-                        </select>
-                    </label>
-                    <label>Услуга
-                        <select name="service_id">
-                            <option value="">Не выбрана</option>
-                            {% for service in services %}
-                            <option value="{{ service.id }}" {% if photo.service_id == service.id %}selected{% endif %}>{{ service.title }}</option>
-                            {% endfor %}
-                        </select>
-                    </label>
-                    <label>Порядок<input name="sort_order" type="number" value="{{ photo.sort_order }}"></label>
-                    {{ text_editor('Описание фото', 'alt_text', photo.alt_text, 3, 'Описание не заполнено') }}
-                    <label class="admin-check"><input type="checkbox" name="is_active" {% if photo.is_active %}checked{% endif %}> Видна</label>
-                    <button class="btn btn--primary" type="submit">Сохранить</button>
-                </form>
-                <form method="post" action="/admin/portfolio/{{ photo.id }}/delete"><button class="btn btn--secondary" type="submit">Удалить</button></form>
+                <article class="admin-photo-tile" data-category="{{ photo.category_id or '' }}" data-service="{{ photo.service_id or '' }}" data-visible="{{ photo.is_active }}">
+                    <button type="button" class="admin-photo-thumb" onclick="document.getElementById('portfolio-photo-{{ photo.id }}').showModal()">
+                        <img src="{{ photo.image_path }}" alt="{{ photo.alt_text }}" loading="lazy">
+                    </button>
+                    <div>
+                        <strong>{{ photo.category_title or 'Без раздела' }}</strong>
+                        <span>{% if photo.is_active %}Видна{% else %}Скрыта{% endif %} · {{ photo.sort_order }}</span>
+                    </div>
+                    <button type="button" class="btn btn--secondary" onclick="document.getElementById('portfolio-photo-{{ photo.id }}').showModal()">Действия</button>
+                    <dialog class="admin-dialog" id="portfolio-photo-{{ photo.id }}">
+                        <form method="dialog" class="admin-dialog__close"><button type="submit" aria-label="Закрыть">×</button></form>
+                        <img src="{{ photo.image_path }}" alt="{{ photo.alt_text }}" loading="lazy">
+                        <form method="post" action="/admin/portfolio/save" class="admin-form admin-form--dialog">
+                            <input type="hidden" name="id" value="{{ photo.id }}">
+                            <label>Раздел
+                                <select name="category_id">
+                                    <option value="">Не выбран</option>
+                                    {% for category in portfolio_categories %}
+                                    <option value="{{ category.id }}" {% if photo.category_id == category.id %}selected{% endif %}>{{ category.title }}</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                            <label>Услуга
+                                <select name="service_id">
+                                    <option value="">Не выбрана</option>
+                                    {% for service in services %}
+                                    <option value="{{ service.id }}" {% if photo.service_id == service.id %}selected{% endif %}>{{ service.title }}</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                            <label>Порядок<input name="sort_order" type="number" value="{{ photo.sort_order }}"></label>
+                            <label class="admin-wide">Описание фото<textarea name="alt_text" rows="3">{{ photo.alt_text }}</textarea></label>
+                            <label class="admin-check"><input type="checkbox" name="is_active" {% if photo.is_active %}checked{% endif %}> Видна</label>
+                            <button class="btn btn--primary" type="submit">Сохранить фото</button>
+                        </form>
+                        <form method="post" action="/admin/portfolio/{{ photo.id }}/delete">
+                            <button class="btn btn--secondary" type="submit">Удалить</button>
+                        </form>
+                    </dialog>
+                </article>
                 {% endfor %}
             </div>
         </section>
 
-        <section class="admin-panel" id="gallery">
-            <h2>Галерея</h2>
-            <form method="post" action="/admin/gallery/upload" enctype="multipart/form-data" class="admin-form">
-                <label>Фото работы<input type="file" name="image" accept=".jpg,.jpeg,.png,.webp" required></label>
-                <label>Порядок показа<input name="sort_order" type="number" value="100"></label>
-                <label class="admin-wide">Описание фото<textarea name="alt_text" rows="2" placeholder="Например: свадебный макияж в нежных тонах"></textarea></label>
-                <p class="admin-help admin-wide">Описание фото помогает клиентам и поисковикам понять, что изображено на фотографии.</p>
-                <button class="btn btn--primary" type="submit">Загрузить фото</button>
-            </form>
-            <div class="admin-gallery">
-                {% for item in gallery %}
-                <form method="post" action="/admin/gallery/save" class="admin-photo">
-                    <img src="{{ item.image_path }}" alt="{{ item.alt_text }}" loading="lazy">
-                    <input type="hidden" name="id" value="{{ item.id }}">
-                    <label>Порядок показа<input name="sort_order" type="number" value="{{ item.sort_order }}"></label>
-                    {{ text_editor('Описание фото', 'alt_text', item.alt_text, 3, 'Описание не заполнено') }}
-                    <label class="admin-check"><input type="checkbox" name="is_active" {% if item.is_active %}checked{% endif %}> Видна</label>
-                    <button class="btn btn--primary" type="submit">Сохранить</button>
-                </form>
-                <form method="post" action="/admin/gallery/{{ item.id }}/delete"><button class="btn btn--secondary" type="submit">Удалить</button></form>
-                {% endfor %}
-            </div>
-        </section>
-
-        <section class="admin-panel" id="reviews">
+        <section class="admin-panel {% if active_tab != 'reviews' %}is-hidden{% endif %}" id="reviews">
             <h2>Отзывы</h2>
             <form method="post" action="/admin/reviews/save" class="admin-form">
                 <label>Имя клиента<input name="client_name" placeholder="Например: Анна" required></label>
                 <label>Дата отзыва<input name="created_at" type="date"></label>
-                <label>Где показывать отзыв
+                <label>Где показывать
                     <select name="service_id">
                         <option value="">На главной странице</option>
                         {% for service in services %}
@@ -234,63 +310,152 @@
                         {% endfor %}
                     </select>
                 </label>
-                <label class="admin-wide">Текст отзыва<textarea name="text" rows="3" placeholder="Вставьте отзыв клиента" required></textarea></label>
+                <label class="admin-wide">Текст отзыва<textarea name="text" rows="3" required></textarea></label>
                 <label class="admin-check"><input type="checkbox" name="is_active" checked> Показывать</label>
-                <p class="admin-help admin-wide">Если выбрать конкретную услугу, отзыв появится только на странице этой услуги. Если оставить “На главной странице”, отзыв будет общим.</p>
                 <button class="btn btn--primary" type="submit">Добавить отзыв</button>
             </form>
-            {% for review in reviews %}
-            <form method="post" action="/admin/reviews/save" class="admin-row">
-                <input type="hidden" name="id" value="{{ review.id }}">
-                <label>Имя клиента<input name="client_name" value="{{ review.client_name }}"></label>
-                <label>Дата<input name="created_at" value="{{ review.created_at }}"></label>
-                <label>Где показывать
-                    <select name="service_id">
-                        <option value="">На главной странице</option>
-                        {% for service in services %}
-                        <option value="{{ service.id }}" {% if review.service_id == service.id %}selected{% endif %}>На странице услуги: {{ service.title }}</option>
-                        {% endfor %}
-                    </select>
-                </label>
-                {{ text_editor('Текст отзыва', 'text', review.text, 4, 'Текст не заполнен') }}
-                <label class="admin-check"><input type="checkbox" name="is_active" {% if review.is_active %}checked{% endif %}> Видим</label>
-                <button class="btn btn--primary" type="submit">Сохранить</button>
-            </form>
-            <form method="post" action="/admin/reviews/{{ review.id }}/delete"><button class="btn btn--secondary" type="submit">Удалить</button></form>
-            {% endfor %}
+            <div class="admin-compact-list">
+                {% for review in reviews %}
+                <details class="admin-compact-item">
+                    <summary>
+                        <span class="admin-row-title">{{ review.client_name }}</span>
+                        <span>{{ review.text[:110] }}{% if review.text|length > 110 %}...{% endif %}</span>
+                        <span>{{ review.service_title or 'Главная' }}</span>
+                        <span>{% if review.is_active %}Видим{% else %}Скрыт{% endif %}</span>
+                    </summary>
+                    <form method="post" action="/admin/reviews/save" class="admin-form admin-form--inside">
+                        <input type="hidden" name="id" value="{{ review.id }}">
+                        <label>Имя клиента<input name="client_name" value="{{ review.client_name }}"></label>
+                        <label>Дата<input name="created_at" value="{{ review.created_at }}"></label>
+                        <label>Где показывать
+                            <select name="service_id">
+                                <option value="">На главной странице</option>
+                                {% for service in services %}
+                                <option value="{{ service.id }}" {% if review.service_id == service.id %}selected{% endif %}>На странице услуги: {{ service.title }}</option>
+                                {% endfor %}
+                            </select>
+                        </label>
+                        {{ text_editor('Текст отзыва', 'text', review.text, 4) }}
+                        <label class="admin-check"><input type="checkbox" name="is_active" {% if review.is_active %}checked{% endif %}> Видим</label>
+                        <button class="btn btn--primary" type="submit">Сохранить отзыв</button>
+                    </form>
+                    <form method="post" action="/admin/reviews/{{ review.id }}/delete" class="admin-delete-form">
+                        <button class="btn btn--secondary" type="submit">Удалить</button>
+                    </form>
+                </details>
+                {% endfor %}
+            </div>
         </section>
 
-        <section class="admin-panel" id="blog">
+        <section class="admin-panel {% if active_tab != 'blog' %}is-hidden{% endif %}" id="blog">
             <h2>Блог</h2>
-            <form method="post" action="/admin/blog/import"><button class="btn btn--primary" type="submit">Запустить импорт Telegram сейчас</button></form>
             <form method="post" action="/admin/blog/save" class="admin-form">
-                <label class="admin-wide">Заголовок поста<textarea name="title" rows="2" placeholder="Например: Как подготовиться к свадебному макияжу" required></textarea></label>
+                <label class="admin-wide">Заголовок поста<textarea name="title" rows="2" required></textarea></label>
                 <label>Адрес страницы<input name="slug" placeholder="Можно оставить пустым"></label>
-                <label>Номер поста в Telegram<input name="telegram_message_id" placeholder="Заполняется при импорте"></label>
-                <label>Дата публикации<input name="created_at" placeholder="Например: 2026-06-08 12:00:00"></label>
-                <label class="admin-wide">Текст поста<textarea name="text_markdown" rows="5" placeholder="Текст статьи или поста"></textarea></label>
-                <label class="admin-wide">Заголовок для поиска<textarea name="seo_title" rows="2" placeholder="Можно оставить как заголовок поста"></textarea></label>
-                <label class="admin-wide">Описание для поиска<textarea name="seo_description" rows="3" placeholder="Короткое описание для Яндекса/Google"></textarea></label>
+                <label>Номер поста в Telegram<input name="telegram_message_id"></label>
+                <label>Дата публикации<input name="created_at" placeholder="2026-06-08 12:00:00"></label>
+                <label class="admin-wide">Текст поста<textarea name="text_markdown" rows="5"></textarea></label>
+                <label class="admin-wide">Заголовок для поиска<textarea name="seo_title" rows="2"></textarea></label>
+                <label class="admin-wide">Описание для поиска<textarea name="seo_description" rows="3"></textarea></label>
                 <label class="admin-check"><input type="checkbox" name="is_visible" checked> Показывать</label>
-                <p class="admin-help admin-wide">Номер поста в Telegram нужен сайту, чтобы не импортировать один и тот же пост повторно. При ручном добавлении его можно не заполнять.</p>
                 <button class="btn btn--primary" type="submit">Добавить пост</button>
             </form>
-            {% for post in posts %}
-            <form method="post" action="/admin/blog/save" class="admin-row">
-                <input type="hidden" name="id" value="{{ post.id }}">
-                <label>Адрес страницы<input name="slug" value="{{ post.slug }}"></label>
-                <label>Номер в Telegram<input name="telegram_message_id" value="{{ post.telegram_message_id or '' }}"></label>
-                <label>Дата<input name="created_at" value="{{ post.created_at }}"></label>
-                {{ text_editor('Заголовок', 'title', post.title, 3, 'Заголовок не заполнен') }}
-                {{ text_editor('Текст', 'text_markdown', post.text_markdown, 6, 'Текст не заполнен') }}
-                {{ text_editor('Заголовок для поиска', 'seo_title', post.seo_title, 3, 'Заголовок не заполнен') }}
-                {{ text_editor('Описание для поиска', 'seo_description', post.seo_description, 4, 'Описание не заполнено') }}
-                <label class="admin-check"><input type="checkbox" name="is_visible" {% if post.is_visible %}checked{% endif %}> Видим</label>
-                <button class="btn btn--primary" type="submit">Сохранить</button>
+            <div class="admin-compact-list">
+                {% for post in posts %}
+                <details class="admin-compact-item">
+                    <summary>
+                        <span class="admin-row-title">{{ post.title }}</span>
+                        <span>{{ post.created_at }}</span>
+                        <span>{{ post.photo_count }} фото</span>
+                        <span>{% if post.is_visible %}Видим{% else %}Скрыт{% endif %}</span>
+                    </summary>
+                    <form method="post" action="/admin/blog/save" class="admin-form admin-form--inside">
+                        <input type="hidden" name="id" value="{{ post.id }}">
+                        <label>Адрес страницы<input name="slug" value="{{ post.slug }}"></label>
+                        <label>Номер в Telegram<input name="telegram_message_id" value="{{ post.telegram_message_id or '' }}"></label>
+                        <label>Дата<input name="created_at" value="{{ post.created_at }}"></label>
+                        {{ text_editor('Заголовок', 'title', post.title, 3) }}
+                        {{ text_editor('Текст', 'text_markdown', post.text_markdown, 6) }}
+                        {{ text_editor('Заголовок для поиска', 'seo_title', post.seo_title, 3) }}
+                        {{ text_editor('Описание для поиска', 'seo_description', post.seo_description, 4) }}
+                        <label class="admin-check"><input type="checkbox" name="is_visible" {% if post.is_visible %}checked{% endif %}> Видим</label>
+                        <button class="btn btn--primary" type="submit">Сохранить пост</button>
+                    </form>
+                    <form method="post" action="/admin/blog/{{ post.id }}/photos/upload" enctype="multipart/form-data" class="admin-form admin-form--inside">
+                        <label>Фото к посту<input type="file" name="images" accept=".jpg,.jpeg,.png,.webp" multiple required></label>
+                        <label>Порядок с<input name="sort_order" type="number" value="100"></label>
+                        <label class="admin-wide">Описание фото<textarea name="alt_text" rows="2"></textarea></label>
+                        <button class="btn btn--primary" type="submit">Прикрепить фото</button>
+                    </form>
+                    {% if post.photos %}
+                    <div class="admin-blog-photos">
+                        {% for photo in post.photos %}
+                        <form method="post" action="/admin/blog/photos/save" class="admin-blog-photo">
+                            <img src="{{ photo.image_path }}" alt="{{ photo.alt_text }}" loading="lazy">
+                            <input type="hidden" name="id" value="{{ photo.id }}">
+                            <label>Порядок<input name="sort_order" type="number" value="{{ photo.sort_order }}"></label>
+                            <label>Описание<input name="alt_text" value="{{ photo.alt_text }}"></label>
+                            <button class="btn btn--primary" type="submit">Сохранить</button>
+                        </form>
+                        <form method="post" action="/admin/blog/photos/{{ photo.id }}/delete" class="admin-delete-form">
+                            <button class="btn btn--secondary" type="submit">Удалить фото</button>
+                        </form>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    <form method="post" action="/admin/blog/{{ post.id }}/toggle" class="admin-delete-form">
+                        <button class="btn btn--secondary" type="submit">Скрыть/показать</button>
+                    </form>
+                </details>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section class="admin-panel {% if active_tab != 'seo' %}is-hidden{% endif %}" id="seo">
+            <h2>SEO</h2>
+            <form method="post" action="/admin/settings" class="admin-form">
+                <input type="hidden" name="tab" value="seo">
+                {{ text_editor('Title главной', 'home_title', site_settings.get('home_title', ''), 3) }}
+                {{ text_editor('Description главной', 'home_description', site_settings.get('home_description', ''), 4) }}
+                {{ text_editor('Title блога', 'blog_title', site_settings.get('blog_title', ''), 3) }}
+                {{ text_editor('Description блога', 'blog_description', site_settings.get('blog_description', ''), 4) }}
+                <p class="admin-help admin-wide">Sitemap: <a href="/sitemap.xml" target="_blank">/sitemap.xml</a> · Robots: <a href="/robots.txt" target="_blank">/robots.txt</a>. JSON-LD формируется автоматически.</p>
+                <button class="btn btn--primary" type="submit">Сохранить SEO</button>
             </form>
-            <form method="post" action="/admin/blog/{{ post.id }}/toggle"><button class="btn btn--secondary" type="submit">Скрыть/показать</button></form>
-            {% endfor %}
+        </section>
+
+        <section class="admin-panel {% if active_tab != 'telegram' %}is-hidden{% endif %}" id="telegram">
+            <h2>Telegram</h2>
+            <div class="admin-status-grid">
+                <div><strong>Режим импорта</strong><span>{{ telegram_import_mode }}</span></div>
+                <div><strong>Токен бота</strong><span>{{ 'задан' if telegram_config.bot_token else 'не задан' }}</span></div>
+                <div><strong>ID канала</strong><span>{{ 'задан' if telegram_config.channel_id else 'не задан' }}</span></div>
+                <div><strong>Последний запуск</strong><span>{{ site_settings.get('telegram_import_last_run') or 'ещё не запускался' }}</span></div>
+                <div><strong>Импортировано</strong><span>{{ site_settings.get('telegram_import_last_count', '0') }}</span></div>
+                <div><strong>Последняя ошибка</strong><span>{{ site_settings.get('telegram_import_last_error') or 'нет' }}</span></div>
+            </div>
+            <form method="post" action="/admin/blog/import">
+                <button class="btn btn--primary" type="submit">Запустить импорт сейчас</button>
+            </form>
+            <p class="admin-help">Bot API получает только те `channel_post`, которые бот увидел после добавления в канал. Для старой истории нужен Telethon и отдельная сессия.</p>
         </section>
     </main>
+    <script>
+        document.querySelectorAll('[data-portfolio-filter]').forEach((select) => {
+            select.addEventListener('change', () => {
+                const values = {
+                    category: document.querySelector('[data-portfolio-filter="category"]')?.value || '',
+                    service: document.querySelector('[data-portfolio-filter="service"]')?.value || '',
+                    visible: document.querySelector('[data-portfolio-filter="visible"]')?.value || ''
+                };
+                document.querySelectorAll('.admin-photo-tile').forEach((tile) => {
+                    const ok = (!values.category || tile.dataset.category === values.category)
+                        && (!values.service || tile.dataset.service === values.service)
+                        && (!values.visible || tile.dataset.visible === values.visible);
+                    tile.hidden = !ok;
+                });
+            });
+        });
+    </script>
 </body>
 </html>

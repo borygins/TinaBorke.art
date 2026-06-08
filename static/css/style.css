@@ -792,6 +792,18 @@ body {
   margin: 0;
 }
 
+.site-logo {
+    color: var(--gold, #d4af37);
+    font-size: 1.25rem;
+    font-weight: 800;
+    text-decoration: none;
+    transition: color 160ms ease;
+}
+
+.site-logo:hover {
+    color: var(--cream, #fff8ec);
+}
+
 .header__nav {
   display: flex;
 }
@@ -916,6 +928,12 @@ body {
   margin-right: auto;
 }
 
+.hero__intro {
+    display: grid;
+    gap: 10px;
+    margin: 18px 0 24px;
+}
+
 .hero__cta {
   background: linear-gradient(45deg, var(--gold), var(--rose-gold));
   border: none;
@@ -1009,6 +1027,10 @@ body {
   margin-bottom: var(--space-32);
 }
 
+.services__category + .services__category {
+    margin-top: 34px;
+}
+
 .services__category h3 {
   font-size: var(--font-size-2xl);
   color: var(--rose-gold);
@@ -1034,6 +1056,17 @@ body {
   transition: all var(--duration-normal) var(--ease-standard);
   position: relative;
   overflow: hidden;
+}
+
+.service-card p {
+    display: none;
+}
+
+.service-card .service-card__duration {
+    display: block;
+    margin: 0 0 12px;
+    color: rgba(255, 248, 236, 0.76);
+    font-size: 0.96rem;
 }
 
 .service-card::before {
@@ -1984,10 +2017,27 @@ img { max-width: 100%; height: auto; }
         overflow-x: auto;
         scroll-snap-type: x mandatory;
     }
-    .article-gallery img {
+.article-gallery img {
         flex: 0 0 86%;
         scroll-snap-align: start;
     }
+}
+
+/* Current compact service cards on the home page. Keep long descriptions on detail pages only. */
+.services .service-card p:not(.service-card__duration) {
+    display: none !important;
+}
+
+.services .service-card__duration {
+    display: block !important;
+}
+
+.blog-card__image {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    border-radius: 8px;
+    margin-bottom: 14px;
 }
 
 @media (min-width: 641px) and (max-width: 1024px) {

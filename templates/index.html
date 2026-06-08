@@ -33,7 +33,7 @@
         <div class="container">
             <div class="header__content">
                 <div class="header__logo">
-                    <h2>Визаж & Грим от Тины Борке</h2>
+                    <a href="/" class="site-logo">Визаж & Грим от {{ site_settings.master_name }}</a>
                 </div>
                 <nav class="header__nav">
                     <ul class="nav-list">
@@ -61,8 +61,10 @@
             <div class="container">
                 <div class="hero__content">
                     <div class="hero__promo">{{ site_settings.promo_text }}</div>
-                    <h1 class="hero__title">Визажист в {{ site_settings.city }} {{ site_settings.master_name }}</h1>
-                    <p class="hero__subtitle">Профессиональный визажист-гример в {{ site_settings.city }}</p>
+                    <div class="hero__intro">
+                        <h1 class="hero__title">{{ site_settings.homepage_intro_line_1 }}</h1>
+                        <p class="hero__subtitle">{{ site_settings.homepage_intro_line_2 }}</p>
+                    </div>
                     <a href="#booking" class="btn btn--primary btn--lg hero__cta">ЗАПИСАТЬСЯ СЕЙЧАС</a>
                 </div>
             </div>
@@ -112,20 +114,42 @@
             <div class="container">
                 <h2 class="services__title">Мои услуги</h2>
 
+                {% macro service_card(service) -%}
+                <div class="service-card{% if service.is_hit %} service-card--featured{% endif %}">
+                    {% if service.is_hit %}<div class="service-card__badge">Хит</div>{% endif %}
+                    <h4>{{ service.title }}</h4>
+                    {% if service.duration %}<p class="service-card__duration">Время: {{ service.duration }}</p>{% endif %}
+                    <div class="service-card__price">{{ service.price }}</div>
+                    <a href="/uslugi/{{ service.slug }}" class="service-card__link">Подробнее</a>
+                </div>
+                {%- endmacro %}
+
+                {% if popular_services %}
                 <div class="services__category">
                     <h3>Популярные услуги</h3>
                     <div class="services__grid">
-                        {% for service in services %}
-                        <div class="service-card{% if service.is_hit %} service-card--featured{% endif %}">
-                            {% if service.is_hit %}<div class="service-card__badge">Хит</div>{% endif %}
-                            <h4>{{ service.title }}</h4>
-                            <p>{{ service.description }}</p>
-                            <div class="service-card__price">{{ service.price }}</div>
-                            <a href="/uslugi/{{ service.slug }}" class="service-card__link">Подробнее</a>
-                        </div>
-                        {% endfor %}
+                        {% for service in popular_services %}{{ service_card(service) }}{% endfor %}
                     </div>
                 </div>
+                {% endif %}
+
+                {% if main_services %}
+                <div class="services__category">
+                    <h3>Основные услуги</h3>
+                    <div class="services__grid">
+                        {% for service in main_services %}{{ service_card(service) }}{% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if additional_services %}
+                <div class="services__category">
+                    <h3>Дополнительные услуги</h3>
+                    <div class="services__grid">
+                        {% for service in additional_services %}{{ service_card(service) }}{% endfor %}
+                    </div>
+                </div>
+                {% endif %}
             </div>
         </section>
 
@@ -166,8 +190,10 @@
             <div class="container">
                 <h2 class="reviews__title">Что говорят мои клиенты</h2>
                 <div class="reviews__subtitle">
+                    {% if site_settings.social_avito_url %}
                     <h3>Больше отзывов читайте на Авито</h3>
-                    <a href="https://www.avito.ru/sankt-peterburg/predlozheniya_uslug/vizazhistmakiyazhpricheskiukladkisvadebnyy_stilist_7398583171?context=H4sIAAAAAAAA_wE_AMD_YToyOntzOjEzOiJsb2NhbFByaW9yaXR5IjtiOjA7czoxOiJ4IjtzOjE2OiJDN29xRTZhZ0dpeVBmbGpEIjt9_eXXQz8AAAA" target="_blank" class="btn btn--outline reviews__avito-link">Смотреть все отзывы на Авито</a>
+                    <a href="{{ site_settings.social_avito_url }}" target="_blank" rel="noopener" class="btn btn--outline reviews__avito-link">Смотреть все отзывы на Авито</a>
+                    {% endif %}
                 </div>
                 <div class="reviews__grid">
                     {% for review in reviews %}
@@ -203,6 +229,7 @@
                             <p><a href="tel:{{ site_settings.phone|replace(' ', '')|replace('-', '') }}">{{ site_settings.phone }}</a></p>
                         </div>
                     </div>
+                    {% if site_settings.telegram_url %}
                     <div class="contact-block">
                         <div class="contact-block__icon">💬</div>
                         <div class="contact-block__content">
@@ -210,6 +237,18 @@
                             <p><a href="{{ site_settings.telegram_url }}" target="_blank" rel="noopener">Telegram</a></p>
                         </div>
                     </div>
+                    {% endif %}
+                    {% for social in social_links %}
+                    {% if social.label != 'Telegram' %}
+                    <div class="contact-block">
+                        <div class="contact-block__icon">↗</div>
+                        <div class="contact-block__content">
+                            <h4>{{ social.label }}</h4>
+                            <p><a href="{{ social.url }}" target="_blank" rel="noopener">{{ social.label }}</a></p>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
                     {% if site_settings.contact_email %}
                     <div class="contact-block">
                         <div class="contact-block__icon">✉</div>
@@ -294,10 +333,20 @@
                         <strong>📞 Телефон:</strong>
                         <a href="tel:{{ site_settings.phone|replace(' ', '')|replace('-', '') }}">{{ site_settings.phone }}</a>
                     </div>
+                    {% if site_settings.telegram_url %}
                     <div class="contact-item">
                         <strong>💬 Telegram:</strong>
                         <a href="{{ site_settings.telegram_url }}" target="_blank" rel="noopener">Telegram</a>
                     </div>
+                    {% endif %}
+                    {% for social in social_links %}
+                    {% if social.label != 'Telegram' %}
+                    <div class="contact-item">
+                        <strong>{{ social.label }}:</strong>
+                        <a href="{{ social.url }}" target="_blank" rel="noopener">{{ social.label }}</a>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
                     {% if site_settings.contact_email %}
                     <div class="contact-item">
                         <strong>✉ Email:</strong>

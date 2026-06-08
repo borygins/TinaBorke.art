@@ -27,6 +27,10 @@
                 <h1>{{ service.title }}</h1>
                 <p class="service-lead">{{ service.description }}</p>
                 <div class="service-price-panel">
+                    {% if service.duration %}
+                    <span>Время выполнения</span>
+                    <strong>{{ service.duration }}</strong>
+                    {% endif %}
                     <span>Стоимость</span>
                     <strong>{{ service.price }}</strong>
                 </div>

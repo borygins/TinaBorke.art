@@ -106,6 +106,10 @@ class Settings:
     ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "admin")
     ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "")
     TELEGRAM_CHANNEL_ID = os.getenv("TELEGRAM_CHANNEL_ID", "")
+    TELEGRAM_API_ID = os.getenv("TELEGRAM_API_ID", "")
+    TELEGRAM_API_HASH = os.getenv("TELEGRAM_API_HASH", "")
+    TELEGRAM_SESSION_NAME = os.getenv("TELEGRAM_SESSION_NAME", "tinaborke")
+    TELEGRAM_IMPORT_MODE = os.getenv("TELEGRAM_IMPORT_MODE", "bot_api")
     BASE_URL = os.getenv("BASE_URL", "http://127.0.0.1:8000").rstrip("/")
     DATABASE_URL = os.getenv("DATABASE_URL", "tinaborke.db")
     SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-here")
@@ -131,6 +135,15 @@ def plain_excerpt(value: str, limit: int = 160) -> str:
     text = re.sub(r"<[^>]+>", " ", value or "")
     text = re.sub(r"\s+", " ", text).strip()
     return text[:limit].rstrip()
+
+def get_social_links(site_settings: dict) -> list[dict]:
+    links = [
+        ("Telegram", site_settings.get("telegram_url", "")),
+        ("Авито", site_settings.get("social_avito_url", "")),
+        ("ВКонтакте", site_settings.get("social_vk_url", "")),
+        ("TikTok", site_settings.get("social_tiktok_url", "")),
+    ]
+    return [{"label": label, "url": url} for label, url in links if url]
 
 def require_admin(credentials: HTTPBasicCredentials = Depends(security)):
     expected_username = settings.ADMIN_USERNAME
@@ -211,6 +224,9 @@ class Database:
                         description TEXT NOT NULL DEFAULT '',
                         service_includes TEXT NOT NULL DEFAULT '',
                         suitable_for TEXT NOT NULL DEFAULT '',
+                        duration TEXT NOT NULL DEFAULT '',
+                        is_popular INTEGER NOT NULL DEFAULT 0,
+                        service_group TEXT NOT NULL DEFAULT 'main',
                         price TEXT NOT NULL DEFAULT '',
                         sort_order INTEGER NOT NULL DEFAULT 0,
                         seo_title TEXT NOT NULL DEFAULT '',
@@ -252,7 +268,9 @@ class Database:
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         post_id INTEGER NOT NULL,
                         image_path TEXT NOT NULL,
+                        alt_text TEXT NOT NULL DEFAULT '',
                         sort_order INTEGER NOT NULL DEFAULT 0,
+                        created_at TEXT NOT NULL DEFAULT '',
                         FOREIGN KEY(post_id) REFERENCES blog_posts(id) ON DELETE CASCADE
                     );
                     CREATE TABLE IF NOT EXISTS portfolio_categories (
@@ -295,7 +313,12 @@ class Database:
         await ensure_column("services", "portfolio_category_id", "INTEGER")
         await ensure_column("services", "service_includes", "TEXT NOT NULL DEFAULT ''")
         await ensure_column("services", "suitable_for", "TEXT NOT NULL DEFAULT ''")
+        await ensure_column("services", "duration", "TEXT NOT NULL DEFAULT ''")
+        await ensure_column("services", "is_popular", "INTEGER NOT NULL DEFAULT 0")
+        await ensure_column("services", "service_group", "TEXT NOT NULL DEFAULT 'main'")
         await ensure_column("reviews", "service_id", "INTEGER")
+        await ensure_column("blog_photos", "alt_text", "TEXT NOT NULL DEFAULT ''")
+        await ensure_column("blog_photos", "created_at", "TEXT NOT NULL DEFAULT ''")
 
     async def seed_defaults(self, db):
         default_settings = {
@@ -304,14 +327,22 @@ class Database:
             "phone": "+7 999 000-00-00",
             "contact_email": "",
             "telegram_url": "https://t.me/TinaBorkeMakeUp",
+            "social_avito_url": "https://www.avito.ru/sankt-peterburg/predlozheniya_uslug/vizazhistmakiyazhpricheskiukladkisvadebnyy_stilist_7398583171",
+            "social_vk_url": "",
+            "social_tiktok_url": "",
             "working_hours": "Ежедневно по предварительной записи",
             "area_served": "Санкт-Петербург и районы выезда",
             "about_text": "Я профессиональный визажист-гример. Работаю легко и с любовью, использую качественные продукты и подбираю образ под вашу внешность и настроение.",
             "promo_text": "ОСЕННЯЯ АКЦИЯ - Скидка 10% на все услуги",
+            "homepage_intro_line_1": "Создаю уникальные образы с душой",
+            "homepage_intro_line_2": "Профессиональный визажист-гример в Санкт-Петербурге",
             "home_title": "Визажист в Санкт-Петербурге Тина Борке",
             "home_description": "Профессиональный визажист-гример в Санкт-Петербурге: лифтинг макияж, свадебные образы, грим, укладки и обучение.",
             "blog_title": "Блог визажиста Тины Борке",
             "blog_description": "Советы по макияжу, новости, образы и посты из Telegram-канала Тины Борке.",
+            "telegram_import_last_run": "",
+            "telegram_import_last_count": "0",
+            "telegram_import_last_error": "",
         }
         for key, value in default_settings.items():
             await db.execute("INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)", (key, value))
@@ -325,20 +356,24 @@ class Database:
         default_suitable_for = "Услуга подойдет, если нужен продуманный образ без перегруза: для праздника, съемки, важной встречи или личного события."
 
         default_services = [
-            ("Дневной макияж", "dnevnoy-makiyazh", "Легкий аккуратный макияж на каждый день.", "от 2 500 ₽", 10),
-            ("Вечерний макияж", "vecherniy-makiyazh", "Выразительный образ для события, съемки или вечера.", "от 3 000 ₽", 20),
-            ("ЛИФТИНГ макияж", "lifting-makiyazh", "Свежий деликатный макияж с акцентом на лифтинг-эффект.", "от 3 500 ₽", 30),
-            ("Свадебный образ", "svadebnyy-obraz", "Полный образ невесты с учетом платья, прически и стилистики свадьбы.", "от 7 000 ₽", 40),
-            ("Макияж для фотосессии", "makiyazh-dlya-fotosessii", "Стойкий макияж для камеры, света и выбранной концепции.", "от 5 500 ₽", 50),
-            ("Обучение макияжу", "obuchenie-makiyazhu", "Индивидуальный урок для повседневного или вечернего макияжа.", "Договорная", 60),
+            ("Дневной макияж", "dnevnoy-makiyazh", "Легкий аккуратный макияж на каждый день.", "от 2 500 ₽", "1 час", 10, 0, "main"),
+            ("Вечерний макияж", "vecherniy-makiyazh", "Выразительный образ для события, съемки или вечера.", "от 3 000 ₽", "1 час 30 минут", 20, 1, "main"),
+            ("ЛИФТИНГ макияж", "lifting-makiyazh", "Свежий деликатный макияж с акцентом на лифтинг-эффект.", "от 3 500 ₽", "1 час 30 минут", 30, 1, "main"),
+            ("Свадебный образ", "svadebnyy-obraz", "Полный образ невесты с учетом платья, прически и стилистики свадьбы.", "от 7 000 ₽", "2 часа 30 минут", 40, 1, "main"),
+            ("Макияж для фотосессии", "makiyazh-dlya-fotosessii", "Стойкий макияж для камеры, света и выбранной концепции.", "от 5 500 ₽", "2 часа", 50, 0, "additional"),
+            ("Обучение макияжу", "obuchenie-makiyazhu", "Индивидуальный урок для повседневного или вечернего макияжа.", "Договорная", "2 часа", 60, 0, "additional"),
         ]
-        for title, slug, description, price, sort_order in default_services:
+        for title, slug, description, price, duration, sort_order, is_popular, service_group in default_services:
             await db.execute("""
                 INSERT OR IGNORE INTO services
-                (title, slug, description, price, sort_order, seo_title, seo_description, is_active)
-                VALUES (?, ?, ?, ?, ?, ?, ?, 1)
-            """, (title, slug, description, price, sort_order, title[:60], plain_excerpt(description)))
+                (title, slug, description, price, duration, sort_order, is_popular, service_group, seo_title, seo_description, is_active)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+            """, (title, slug, description, price, duration, sort_order, is_popular, service_group, title[:60], plain_excerpt(description)))
         await db.execute("UPDATE services SET is_hit = 1 WHERE slug = ? AND is_hit = 0", ("lifting-makiyazh",))
+        await db.execute("UPDATE services SET duration = '1 час 30 минут' WHERE duration = ''")
+        await db.execute("UPDATE services SET service_group = 'main' WHERE service_group = ''")
+        await db.execute("UPDATE services SET is_popular = 1 WHERE slug IN ('vecherniy-makiyazh', 'lifting-makiyazh', 'svadebnyy-obraz') AND is_popular = 0")
+        await db.execute("UPDATE services SET service_group = 'additional' WHERE slug IN ('makiyazh-dlya-fotosessii', 'obuchenie-makiyazhu')")
         await db.execute("UPDATE services SET service_includes = ? WHERE service_includes = ''", (default_service_includes,))
         await db.execute("UPDATE services SET suitable_for = ? WHERE suitable_for = ''", (default_suitable_for,))
 
@@ -455,6 +490,15 @@ class Database:
         where = "WHERE is_active = 1" if active_only else ""
         return await self.fetch_all(f"SELECT * FROM services {where} ORDER BY sort_order, id")
 
+    async def get_services_by_group(self) -> dict:
+        services = await self.get_services(active_only=True)
+        return {
+            "popular_services": [item for item in services if item.get("is_popular")],
+            "main_services": [item for item in services if item.get("service_group") == "main"],
+            "additional_services": [item for item in services if item.get("service_group") == "additional"],
+            "all_services": services,
+        }
+
     async def get_service_by_slug(self, slug: str) -> Optional[dict]:
         return await self.fetch_one("""
             SELECT services.*, portfolio_categories.slug AS portfolio_slug, portfolio_categories.title AS portfolio_title
@@ -473,26 +517,29 @@ class Database:
             form.get("description") or "",
             form.get("service_includes") or "",
             form.get("suitable_for") or "",
+            form.get("duration") or "",
             form.get("price") or "",
             int(form.get("sort_order") or 0),
             form.get("seo_title") or title[:60],
             form.get("seo_description") or plain_excerpt(form.get("description") or title),
             1 if form.get("is_hit") == "on" else 0,
+            1 if form.get("is_popular") == "on" else 0,
+            form.get("service_group") if form.get("service_group") in {"main", "additional"} else "main",
             int(form["portfolio_category_id"]) if form.get("portfolio_category_id") else None,
             1 if form.get("is_active") == "on" else 0,
         )
         if service_id:
             await self.execute("""
                 UPDATE services
-                SET title=?, slug=?, description=?, service_includes=?, suitable_for=?, price=?, sort_order=?, seo_title=?, seo_description=?,
-                    is_hit=?, portfolio_category_id=?, is_active=?
+                SET title=?, slug=?, description=?, service_includes=?, suitable_for=?, duration=?, price=?, sort_order=?, seo_title=?, seo_description=?,
+                    is_hit=?, is_popular=?, service_group=?, portfolio_category_id=?, is_active=?
                 WHERE id=?
             """, values + (service_id,))
         else:
             await self.execute("""
                 INSERT INTO services
-                (title, slug, description, service_includes, suitable_for, price, sort_order, seo_title, seo_description, is_hit, portfolio_category_id, is_active)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (title, slug, description, service_includes, suitable_for, duration, price, sort_order, seo_title, seo_description, is_hit, is_popular, service_group, portfolio_category_id, is_active)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, values)
 
     async def delete_service(self, service_id: int):
@@ -615,8 +662,9 @@ class Database:
                 VALUES (?, ?, ?, ?, ?)
             """, values)
 
-    async def get_portfolio_photos(self, active_only: bool = False) -> list[dict]:
+    async def get_portfolio_photos(self, active_only: bool = False, limit: Optional[int] = None) -> list[dict]:
         where = "WHERE portfolio_photos.is_active = 1" if active_only else ""
+        limit_clause = f"LIMIT {int(limit)}" if limit else ""
         return await self.fetch_all(f"""
             SELECT portfolio_photos.*, portfolio_categories.title AS category_title, services.title AS service_title
             FROM portfolio_photos
@@ -624,6 +672,7 @@ class Database:
             LEFT JOIN services ON services.id = portfolio_photos.service_id
             {where}
             ORDER BY portfolio_photos.sort_order, portfolio_photos.id DESC
+            {limit_clause}
         """)
 
     async def save_portfolio_photo(self, image_path: str, form: dict):
@@ -658,11 +707,30 @@ class Database:
         await self.execute("DELETE FROM portfolio_photos WHERE id = ?", (photo_id,))
 
     async def get_blog_posts(self, visible_only: bool = True) -> list[dict]:
-        where = "WHERE is_visible = 1" if visible_only else ""
-        return await self.fetch_all(f"SELECT * FROM blog_posts {where} ORDER BY created_at DESC, id DESC")
+        where = "WHERE blog_posts.is_visible = 1" if visible_only else ""
+        posts = await self.fetch_all(f"""
+            SELECT blog_posts.*,
+                   COALESCE(blog_posts.first_image, (
+                       SELECT image_path FROM blog_photos
+                       WHERE blog_photos.post_id = blog_posts.id
+                       ORDER BY sort_order, id
+                       LIMIT 1
+                   )) AS preview_image,
+                   (SELECT COUNT(*) FROM blog_photos WHERE blog_photos.post_id = blog_posts.id) AS photo_count
+            FROM blog_posts
+            {where}
+            ORDER BY blog_posts.created_at DESC, blog_posts.id DESC
+        """)
+        return posts
 
     async def get_blog_post(self, slug: str) -> Optional[dict]:
         post = await self.fetch_one("SELECT * FROM blog_posts WHERE slug = ? AND is_visible = 1", (slug,))
+        if post:
+            post["photos"] = await self.fetch_all("SELECT * FROM blog_photos WHERE post_id = ? ORDER BY sort_order, id", (post["id"],))
+        return post
+
+    async def get_blog_post_by_id(self, post_id: int) -> Optional[dict]:
+        post = await self.fetch_one("SELECT * FROM blog_posts WHERE id = ?", (post_id,))
         if post:
             post["photos"] = await self.fetch_all("SELECT * FROM blog_photos WHERE post_id = ? ORDER BY sort_order, id", (post["id"],))
         return post
@@ -692,8 +760,9 @@ class Database:
                     created_at=?, is_visible=?, seo_title=?, seo_description=?
                 WHERE id=?
             """, values + (post_id,))
+            return int(post_id)
         else:
-            await self.execute("""
+            return await self.execute("""
                 INSERT INTO blog_posts
                 (telegram_message_id, title, slug, text_html, text_markdown, first_image, created_at, is_visible, seo_title, seo_description)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -702,39 +771,88 @@ class Database:
     async def toggle_blog_post(self, post_id: int):
         await self.execute("UPDATE blog_posts SET is_visible = CASE is_visible WHEN 1 THEN 0 ELSE 1 END WHERE id = ?", (post_id,))
 
+    async def add_blog_photo(self, post_id: int, image_path: str, alt_text: str = "", sort_order: int = 0):
+        await self.execute("""
+            INSERT INTO blog_photos (post_id, image_path, alt_text, sort_order, created_at)
+            VALUES (?, ?, ?, ?, ?)
+        """, (post_id, image_path, alt_text or "Фото к посту", sort_order, get_moscow_time().strftime("%Y-%m-%d %H:%M:%S")))
+
+    async def update_blog_photo(self, form: dict):
+        await self.execute("""
+            UPDATE blog_photos SET alt_text=?, sort_order=? WHERE id=?
+        """, (form.get("alt_text") or "", int(form.get("sort_order") or 0), form.get("id")))
+
+    async def delete_blog_photo(self, photo_id: int):
+        await self.execute("DELETE FROM blog_photos WHERE id = ?", (photo_id,))
+
+    async def set_telegram_import_status(self, count: int = 0, error: str = ""):
+        await self.update_settings({
+            "telegram_import_last_run": get_moscow_time().strftime("%Y-%m-%d %H:%M:%S"),
+            "telegram_import_last_count": str(count),
+            "telegram_import_last_error": error[:500],
+        })
+
     async def import_telegram_updates(self) -> int:
+        if settings.TELEGRAM_IMPORT_MODE != "bot_api":
+            message = "Режим Telethon указан в .env, но Telethon-импорт в этом проекте пока не реализован. Используйте bot_api или добавьте отдельный скрипт Telethon."
+            logger.warning(message)
+            await self.set_telegram_import_status(0, message)
+            return 0
         if not settings.TELEGRAM_BOT_TOKEN:
-            logger.warning("TELEGRAM_BOT_TOKEN не настроен - импорт Telegram пропущен")
+            message = "TELEGRAM_BOT_TOKEN не настроен - импорт Telegram пропущен"
+            logger.warning(message)
+            await self.set_telegram_import_status(0, message)
+            return 0
+        if not settings.TELEGRAM_CHANNEL_ID:
+            message = "TELEGRAM_CHANNEL_ID не настроен - импорт не знает, какой канал читать"
+            logger.warning(message)
+            await self.set_telegram_import_status(0, message)
             return 0
         url = f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/getUpdates"
         imported = 0
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.get(url, params={"allowed_updates": json.dumps(["channel_post"])})
-            if response.status_code != 200:
-                logger.warning(f"Telegram import failed: {response.status_code}")
-                return 0
-            for item in response.json().get("result", []):
-                post = item.get("channel_post") or {}
-                channel_id = str(post.get("chat", {}).get("id", ""))
-                if settings.TELEGRAM_CHANNEL_ID and channel_id != str(settings.TELEGRAM_CHANNEL_ID):
-                    continue
-                message_id = str(post.get("message_id", ""))
-                text = post.get("text") or post.get("caption") or ""
-                if not message_id or not text:
-                    continue
-                exists = await self.fetch_one("SELECT id FROM blog_posts WHERE telegram_message_id = ?", (message_id,))
-                if exists:
-                    continue
-                title = plain_excerpt(text, 60) or f"Пост Telegram {message_id}"
-                await self.save_blog_post({
-                    "telegram_message_id": message_id,
-                    "title": title,
-                    "slug": f"telegram-{message_id}",
-                    "text_markdown": text,
-                    "created_at": datetime.fromtimestamp(post.get("date", datetime.now().timestamp())).strftime("%Y-%m-%d %H:%M:%S"),
-                    "is_visible": "on",
-                })
-                imported += 1
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.get(url, params={"allowed_updates": json.dumps(["channel_post"])})
+                if response.status_code != 200:
+                    detail = response.text[:300]
+                    message = f"Telegram Bot API вернул {response.status_code}: {detail}"
+                    logger.warning("Telegram import failed without exposing token: %s", message)
+                    await self.set_telegram_import_status(0, message)
+                    return 0
+                payload = response.json()
+                if not payload.get("ok"):
+                    message = f"Telegram Bot API error: {payload.get('description', 'unknown error')}"
+                    logger.warning(message)
+                    await self.set_telegram_import_status(0, message)
+                    return 0
+                for item in payload.get("result", []):
+                    post = item.get("channel_post") or {}
+                    channel_id = str(post.get("chat", {}).get("id", ""))
+                    if channel_id != str(settings.TELEGRAM_CHANNEL_ID):
+                        continue
+                    message_id = str(post.get("message_id", ""))
+                    text = post.get("text") or post.get("caption") or ""
+                    if not message_id or not text:
+                        continue
+                    exists = await self.fetch_one("SELECT id FROM blog_posts WHERE telegram_message_id = ?", (message_id,))
+                    if exists:
+                        continue
+                    title = plain_excerpt(text, 60) or f"Пост Telegram {message_id}"
+                    await self.save_blog_post({
+                        "telegram_message_id": message_id,
+                        "title": title,
+                        "slug": f"telegram-{message_id}",
+                        "text_markdown": text,
+                        "created_at": datetime.fromtimestamp(post.get("date", datetime.now().timestamp())).strftime("%Y-%m-%d %H:%M:%S"),
+                        "is_visible": "on",
+                    })
+                    imported += 1
+            await self.set_telegram_import_status(imported, "" if imported else "Новых channel_post в getUpdates не найдено. Bot API не отдаёт старую историю канала.")
+        except Exception as exc:
+            message = f"{type(exc).__name__}: {str(exc)[:300]}"
+            logger.error("Telegram import exception without token: %s", message)
+            await self.set_telegram_import_status(0, message)
+            return 0
         return imported
 
 # ========== СЕРВИС TELEGRAM УВЕДОМЛЕНИЙ ==========
@@ -932,9 +1050,10 @@ async def read_root(request: Request):
     if Path("templates").exists():
         logger.info("Рендеринг index.html из templates")
         site_settings = await db.get_settings()
-        services = await db.get_services()
+        service_groups = await db.get_services_by_group()
+        services = service_groups["all_services"]
         reviews = await db.get_reviews(global_only=True)
-        gallery = await db.get_gallery()
+        social_links = get_social_links(site_settings)
         json_ld = {
             "@context": "https://schema.org",
             "@type": "BeautySalon",
@@ -949,13 +1068,16 @@ async def read_root(request: Request):
                 "addressCountry": "RU",
             },
             "areaServed": site_settings.get("area_served", ""),
-            "sameAs": [site_settings.get("telegram_url", "")],
+            "sameAs": [item["url"] for item in social_links],
         }
         return templates.TemplateResponse(request, "index.html", {
             "site_settings": site_settings,
             "services": services,
+            "popular_services": service_groups["popular_services"],
+            "main_services": service_groups["main_services"],
+            "additional_services": service_groups["additional_services"],
             "reviews": reviews,
-            "gallery": gallery,
+            "social_links": social_links,
             "canonical_url": settings.BASE_URL + "/",
             "json_ld": json.dumps(json_ld, ensure_ascii=False),
         })
@@ -980,6 +1102,7 @@ async def about_page(request: Request):
     site_settings = await db.get_settings()
     return templates.TemplateResponse(request, "about.html", {
         "site_settings": site_settings,
+        "social_links": get_social_links(site_settings),
         "canonical_url": settings.BASE_URL + "/about",
     })
 
@@ -989,6 +1112,7 @@ async def blog_index(request: Request):
     posts = await db.get_blog_posts()
     return templates.TemplateResponse(request, "blog.html", {
         "site_settings": site_settings,
+        "social_links": get_social_links(site_settings),
         "posts": posts,
         "canonical_url": settings.BASE_URL + "/blog",
     })
@@ -1009,6 +1133,7 @@ async def blog_post(request: Request, slug: str):
     }
     return templates.TemplateResponse(request, "blog_post.html", {
         "site_settings": site_settings,
+        "social_links": get_social_links(site_settings),
         "post": post,
         "canonical_url": settings.BASE_URL + f"/blog/{slug}",
         "json_ld": json.dumps(article_ld, ensure_ascii=False),
@@ -1020,6 +1145,7 @@ async def portfolio_index(request: Request):
     categories = await db.get_portfolio_categories()
     return templates.TemplateResponse(request, "portfolio.html", {
         "site_settings": site_settings,
+        "social_links": get_social_links(site_settings),
         "categories": categories,
         "canonical_url": settings.BASE_URL + "/portfolio",
     })
@@ -1032,6 +1158,7 @@ async def portfolio_category_page(request: Request, category_slug: str):
         raise HTTPException(status_code=404, detail="Категория портфолио не найдена")
     return templates.TemplateResponse(request, "portfolio_category.html", {
         "site_settings": site_settings,
+        "social_links": get_social_links(site_settings),
         "category": category,
         "canonical_url": settings.BASE_URL + f"/portfolio/{category_slug}",
     })
@@ -1056,9 +1183,11 @@ async def service_page(request: Request, slug: str):
         "provider": {"@type": "BeautySalon", "name": f"Визажист {site_settings.get('master_name', 'Тина Борке')}"},
         "areaServed": site_settings.get("city", "Санкт-Петербург"),
         "offers": {"@type": "Offer", "price": service["price"], "priceCurrency": "RUB"},
+        "hoursAvailable": service.get("duration", ""),
     }
     return templates.TemplateResponse(request, "service.html", {
             "site_settings": site_settings,
+            "social_links": get_social_links(site_settings),
             "service": service,
             "service_include_items": service_include_items,
             "reviews": reviews,
@@ -1149,46 +1278,62 @@ async def create_quick_booking(booking: BookingCreate, background_tasks: Backgro
     return await create_booking(booking, background_tasks)
 
 @app.get("/admin", response_class=HTMLResponse)
-async def admin_dashboard(request: Request, _: str = Depends(require_admin)):
+async def admin_dashboard(request: Request, tab: str = "settings", _: str = Depends(require_admin)):
+    allowed_tabs = {"settings", "home", "services", "portfolio", "reviews", "blog", "seo", "telegram"}
+    active_tab = tab if tab in allowed_tabs else "settings"
+    site_settings = await db.get_settings()
+    posts = await db.get_blog_posts(visible_only=False)
+    for post in posts:
+        full_post = await db.get_blog_post_by_id(post["id"])
+        post["photos"] = full_post.get("photos", []) if full_post else []
     return templates.TemplateResponse(request, "admin.html", {
-        "site_settings": await db.get_settings(),
+        "active_tab": active_tab,
+        "site_settings": site_settings,
+        "telegram_import_mode": settings.TELEGRAM_IMPORT_MODE,
+        "telegram_config": {
+            "bot_token": bool(settings.TELEGRAM_BOT_TOKEN),
+            "channel_id": bool(settings.TELEGRAM_CHANNEL_ID),
+            "api_id": bool(settings.TELEGRAM_API_ID),
+            "api_hash": bool(settings.TELEGRAM_API_HASH),
+        },
         "services": await db.get_services(active_only=False),
         "reviews": await db.get_reviews(active_only=False),
-        "gallery": await db.get_gallery(active_only=False),
-        "posts": await db.get_blog_posts(visible_only=False),
+        "posts": posts,
         "portfolio_categories": await db.get_portfolio_categories(active_only=False),
-        "portfolio_photos": await db.get_portfolio_photos(active_only=False),
+        "portfolio_photos": await db.get_portfolio_photos(active_only=False, limit=30),
     })
 
 @app.post("/admin/settings")
 async def admin_save_settings(request: Request, _: str = Depends(require_admin)):
     form = dict(await request.form())
     allowed = {
-        "master_name", "city", "phone", "telegram_url", "working_hours", "area_served",
-        "contact_email", "about_text", "promo_text", "home_title", "home_description", "blog_title", "blog_description",
+        "master_name", "city", "phone", "telegram_url", "social_avito_url", "social_vk_url", "social_tiktok_url",
+        "working_hours", "area_served", "contact_email", "about_text", "promo_text",
+        "homepage_intro_line_1", "homepage_intro_line_2",
+        "home_title", "home_description", "blog_title", "blog_description",
     }
-    await db.update_settings({key: form.get(key, "") for key in allowed})
-    return RedirectResponse("/admin", status_code=303)
+    await db.update_settings({key: form.get(key, "") for key in allowed if key in form})
+    return RedirectResponse(f"/admin?tab={form.get('tab') or 'settings'}", status_code=303)
 
 @app.post("/admin/services/save")
 async def admin_save_service(request: Request, _: str = Depends(require_admin)):
     await db.save_service(dict(await request.form()))
-    return RedirectResponse("/admin#services", status_code=303)
+    return RedirectResponse("/admin?tab=services", status_code=303)
 
 @app.post("/admin/services/{service_id}/delete")
 async def admin_delete_service(service_id: int, _: str = Depends(require_admin)):
     await db.delete_service(service_id)
-    return RedirectResponse("/admin#services", status_code=303)
+    return RedirectResponse("/admin?tab=services", status_code=303)
 
 @app.post("/admin/reviews/save")
 async def admin_save_review(request: Request, _: str = Depends(require_admin)):
     await db.save_review(dict(await request.form()))
-    return RedirectResponse("/admin#reviews", status_code=303)
+    return RedirectResponse("/admin?tab=reviews", status_code=303)
 
 @app.post("/admin/reviews/{review_id}/delete")
 async def admin_delete_review(review_id: int, _: str = Depends(require_admin)):
     await db.delete_review(review_id)
-    return RedirectResponse("/admin#reviews", status_code=303)
+    return RedirectResponse("/admin?tab=reviews", status_code=303)
 
 @app.post("/admin/gallery/upload")
 async def admin_upload_gallery(
@@ -1214,7 +1359,7 @@ async def admin_delete_gallery(item_id: int, _: str = Depends(require_admin)):
 @app.post("/admin/portfolio/categories/save")
 async def admin_save_portfolio_category(request: Request, _: str = Depends(require_admin)):
     await db.save_portfolio_category(dict(await request.form()))
-    return RedirectResponse("/admin#portfolio", status_code=303)
+    return RedirectResponse("/admin?tab=portfolio", status_code=303)
 
 @app.post("/admin/portfolio/upload")
 async def admin_upload_portfolio(
@@ -1225,33 +1370,61 @@ async def admin_upload_portfolio(
     form = dict(await request.form())
     image_path = await save_upload(image, "static/uploads/portfolio")
     await db.save_portfolio_photo(image_path, form)
-    return RedirectResponse("/admin#portfolio", status_code=303)
+    return RedirectResponse("/admin?tab=portfolio", status_code=303)
 
 @app.post("/admin/portfolio/save")
 async def admin_save_portfolio_photo(request: Request, _: str = Depends(require_admin)):
     await db.update_portfolio_photo(dict(await request.form()))
-    return RedirectResponse("/admin#portfolio", status_code=303)
+    return RedirectResponse("/admin?tab=portfolio", status_code=303)
 
 @app.post("/admin/portfolio/{photo_id}/delete")
 async def admin_delete_portfolio_photo(photo_id: int, _: str = Depends(require_admin)):
     await db.delete_portfolio_photo(photo_id)
-    return RedirectResponse("/admin#portfolio", status_code=303)
+    return RedirectResponse("/admin?tab=portfolio", status_code=303)
 
 @app.post("/admin/blog/save")
 async def admin_save_blog(request: Request, _: str = Depends(require_admin)):
     await db.save_blog_post(dict(await request.form()))
-    return RedirectResponse("/admin#blog", status_code=303)
+    return RedirectResponse("/admin?tab=blog", status_code=303)
+
+@app.post("/admin/blog/{post_id}/photos/upload")
+async def admin_upload_blog_photos(
+    post_id: int,
+    images: List[UploadFile] = File(...),
+    request: Request = None,
+    _: str = Depends(require_admin),
+):
+    form = dict(await request.form())
+    for index, image in enumerate(images):
+        image_path = await save_upload(image, "static/blog_photos")
+        await db.add_blog_photo(
+            post_id,
+            image_path,
+            form.get("alt_text") or "Фото к посту",
+            int(form.get("sort_order") or 0) + index,
+        )
+    return RedirectResponse("/admin?tab=blog", status_code=303)
+
+@app.post("/admin/blog/photos/save")
+async def admin_save_blog_photo(request: Request, _: str = Depends(require_admin)):
+    await db.update_blog_photo(dict(await request.form()))
+    return RedirectResponse("/admin?tab=blog", status_code=303)
+
+@app.post("/admin/blog/photos/{photo_id}/delete")
+async def admin_delete_blog_photo(photo_id: int, _: str = Depends(require_admin)):
+    await db.delete_blog_photo(photo_id)
+    return RedirectResponse("/admin?tab=blog", status_code=303)
 
 @app.post("/admin/blog/{post_id}/toggle")
 async def admin_toggle_blog(post_id: int, _: str = Depends(require_admin)):
     await db.toggle_blog_post(post_id)
-    return RedirectResponse("/admin#blog", status_code=303)
+    return RedirectResponse("/admin?tab=blog", status_code=303)
 
 @app.post("/admin/blog/import")
 async def admin_import_blog(_: str = Depends(require_admin)):
     imported = await db.import_telegram_updates()
     logger.info(f"Telegram import completed: {imported} posts")
-    return RedirectResponse("/admin#blog", status_code=303)
+    return RedirectResponse("/admin?tab=telegram", status_code=303)
 
 # ========== ОБРАБОТЧИКИ ОШИБОК ==========
 @app.exception_handler(HTTPException)
