@@ -138,6 +138,13 @@
     gap: 8px;
 }
 
+.admin-help {
+    margin: -2px 0 0;
+    color: var(--admin-muted);
+    font-size: 0.92rem;
+    line-height: 1.45;
+}
+
 .admin-list > form:not(.admin-row),
 .admin-panel > form[action*="/delete"],
 .admin-panel > form[action*="/toggle"] {

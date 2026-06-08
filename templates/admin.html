@@ -18,7 +18,7 @@
             <a class="btn btn--secondary" href="/">На сайт</a>
         </header>
 
-        <nav class="admin-tabs">
+        <nav class="admin-tabs" aria-label="Разделы админки">
             <a href="#settings">Настройки</a>
             <a href="#services">Услуги</a>
             <a href="#gallery">Галерея</a>
@@ -33,12 +33,13 @@
                     'master_name':'Имя мастера', 'city':'Город', 'phone':'Телефон',
                     'telegram_url':'Telegram URL', 'working_hours':'Часы работы',
                     'area_served':'Районы выезда', 'promo_text':'Текст акции',
-                    'home_title':'SEO title главной', 'home_description':'SEO description главной',
-                    'blog_title':'SEO title блога', 'blog_description':'SEO description блога'
+                    'home_title':'Заголовок главной для Яндекса и Google', 'home_description':'Описание главной для Яндекса и Google',
+                    'blog_title':'Заголовок блога для Яндекса и Google', 'blog_description':'Описание блога для Яндекса и Google'
                 }.items() %}
                 <label>{{ label }}<input name="{{ key }}" value="{{ site_settings.get(key, '') }}"></label>
                 {% endfor %}
                 <label class="admin-wide">О себе<textarea name="about_text" rows="5">{{ site_settings.about_text }}</textarea></label>
+                <p class="admin-help admin-wide">Заголовок и описание для поиска видны в результатах Яндекса/Google и помогают клиентам понять, что предлагает сайт.</p>
                 <button class="btn btn--primary" type="submit">Сохранить настройки</button>
             </form>
         </section>
@@ -46,27 +47,28 @@
         <section class="admin-panel" id="services">
             <h2>Услуги</h2>
             <form method="post" action="/admin/services/save" class="admin-form">
-                <input name="title" placeholder="Название" required>
-                <input name="slug" placeholder="slug">
-                <input name="price" placeholder="Цена">
-                <input name="sort_order" type="number" value="100" placeholder="Порядок">
-                <textarea name="description" rows="3" placeholder="Описание"></textarea>
-                <input name="seo_title" placeholder="SEO title">
-                <input name="seo_description" placeholder="SEO description">
+                <label>Название услуги<input name="title" placeholder="Например: Вечерний макияж" required></label>
+                <label>Адрес страницы<input name="slug" placeholder="Можно оставить пустым"></label>
+                <label>Цена<input name="price" placeholder="Например: от 3 000 ₽"></label>
+                <label>Порядок показа<input name="sort_order" type="number" value="100" placeholder="100"></label>
+                <label class="admin-wide">Описание услуги<textarea name="description" rows="3" placeholder="Коротко расскажите, что входит в услугу"></textarea></label>
+                <label>Заголовок для поиска<input name="seo_title" placeholder="Можно оставить как название услуги"></label>
+                <label>Описание для поиска<input name="seo_description" placeholder="Короткое описание для Яндекса/Google"></label>
                 <label class="admin-check"><input type="checkbox" name="is_active" checked> Показывать</label>
+                <p class="admin-help admin-wide">Адрес страницы нужен для красивой ссылки. Если оставить пустым, сайт создаст его сам из названия услуги.</p>
                 <button class="btn btn--primary" type="submit">Добавить услугу</button>
             </form>
             <div class="admin-list">
                 {% for service in services %}
                 <form method="post" action="/admin/services/save" class="admin-row">
                     <input type="hidden" name="id" value="{{ service.id }}">
-                    <input name="title" value="{{ service.title }}">
-                    <input name="slug" value="{{ service.slug }}">
-                    <input name="price" value="{{ service.price }}">
-                    <input name="sort_order" type="number" value="{{ service.sort_order }}">
-                    <textarea name="description" rows="2">{{ service.description }}</textarea>
-                    <input name="seo_title" value="{{ service.seo_title }}">
-                    <input name="seo_description" value="{{ service.seo_description }}">
+                    <label>Название<input name="title" value="{{ service.title }}"></label>
+                    <label>Адрес страницы<input name="slug" value="{{ service.slug }}"></label>
+                    <label>Цена<input name="price" value="{{ service.price }}"></label>
+                    <label>Порядок<input name="sort_order" type="number" value="{{ service.sort_order }}"></label>
+                    <label>Описание<textarea name="description" rows="2">{{ service.description }}</textarea></label>
+                    <label>Заголовок для поиска<input name="seo_title" value="{{ service.seo_title }}"></label>
+                    <label>Описание для поиска<input name="seo_description" value="{{ service.seo_description }}"></label>
                     <label class="admin-check"><input type="checkbox" name="is_active" {% if service.is_active %}checked{% endif %}> Видна</label>
                     <button class="btn btn--primary" type="submit">Сохранить</button>
                 </form>
@@ -78,9 +80,10 @@
         <section class="admin-panel" id="gallery">
             <h2>Галерея</h2>
             <form method="post" action="/admin/gallery/upload" enctype="multipart/form-data" class="admin-form">
-                <input type="file" name="image" accept=".jpg,.jpeg,.png,.webp" required>
-                <input name="alt_text" placeholder="Alt-текст">
-                <input name="sort_order" type="number" value="100">
+                <label>Фото работы<input type="file" name="image" accept=".jpg,.jpeg,.png,.webp" required></label>
+                <label>Описание фото<input name="alt_text" placeholder="Например: свадебный макияж в нежных тонах"></label>
+                <label>Порядок показа<input name="sort_order" type="number" value="100"></label>
+                <p class="admin-help admin-wide">Описание фото помогает клиентам и поисковикам понять, что изображено на фотографии.</p>
                 <button class="btn btn--primary" type="submit">Загрузить фото</button>
             </form>
             <div class="admin-gallery">
@@ -88,8 +91,8 @@
                 <form method="post" action="/admin/gallery/save" class="admin-photo">
                     <img src="{{ item.image_path }}" alt="{{ item.alt_text }}" loading="lazy">
                     <input type="hidden" name="id" value="{{ item.id }}">
-                    <input name="alt_text" value="{{ item.alt_text }}">
-                    <input name="sort_order" type="number" value="{{ item.sort_order }}">
+                    <label>Описание фото<input name="alt_text" value="{{ item.alt_text }}"></label>
+                    <label>Порядок показа<input name="sort_order" type="number" value="{{ item.sort_order }}"></label>
                     <label class="admin-check"><input type="checkbox" name="is_active" {% if item.is_active %}checked{% endif %}> Видна</label>
                     <button class="btn btn--primary" type="submit">Сохранить</button>
                 </form>
@@ -101,18 +104,18 @@
         <section class="admin-panel" id="reviews">
             <h2>Отзывы</h2>
             <form method="post" action="/admin/reviews/save" class="admin-form">
-                <input name="client_name" placeholder="Имя клиента" required>
-                <input name="created_at" type="date">
-                <textarea name="text" rows="3" placeholder="Текст отзыва" required></textarea>
+                <label>Имя клиента<input name="client_name" placeholder="Например: Анна" required></label>
+                <label>Дата отзыва<input name="created_at" type="date"></label>
+                <label class="admin-wide">Текст отзыва<textarea name="text" rows="3" placeholder="Вставьте отзыв клиента" required></textarea></label>
                 <label class="admin-check"><input type="checkbox" name="is_active" checked> Показывать</label>
                 <button class="btn btn--primary" type="submit">Добавить отзыв</button>
             </form>
             {% for review in reviews %}
             <form method="post" action="/admin/reviews/save" class="admin-row">
                 <input type="hidden" name="id" value="{{ review.id }}">
-                <input name="client_name" value="{{ review.client_name }}">
-                <input name="created_at" value="{{ review.created_at }}">
-                <textarea name="text" rows="2">{{ review.text }}</textarea>
+                <label>Имя клиента<input name="client_name" value="{{ review.client_name }}"></label>
+                <label>Дата<input name="created_at" value="{{ review.created_at }}"></label>
+                <label>Текст<textarea name="text" rows="2">{{ review.text }}</textarea></label>
                 <label class="admin-check"><input type="checkbox" name="is_active" {% if review.is_active %}checked{% endif %}> Видим</label>
                 <button class="btn btn--primary" type="submit">Сохранить</button>
             </form>
@@ -124,26 +127,27 @@
             <h2>Блог</h2>
             <form method="post" action="/admin/blog/import"><button class="btn btn--primary" type="submit">Запустить импорт Telegram сейчас</button></form>
             <form method="post" action="/admin/blog/save" class="admin-form">
-                <input name="title" placeholder="Заголовок" required>
-                <input name="slug" placeholder="slug">
-                <input name="telegram_message_id" placeholder="Telegram message ID">
-                <input name="created_at" placeholder="Дата">
-                <textarea name="text_markdown" rows="5" placeholder="Текст поста"></textarea>
-                <input name="seo_title" placeholder="SEO title">
-                <input name="seo_description" placeholder="SEO description">
+                <label>Заголовок поста<input name="title" placeholder="Например: Как подготовиться к свадебному макияжу" required></label>
+                <label>Адрес страницы<input name="slug" placeholder="Можно оставить пустым"></label>
+                <label>Номер поста в Telegram<input name="telegram_message_id" placeholder="Заполняется при импорте"></label>
+                <label>Дата публикации<input name="created_at" placeholder="Например: 2026-06-08 12:00:00"></label>
+                <label class="admin-wide">Текст поста<textarea name="text_markdown" rows="5" placeholder="Текст статьи или поста"></textarea></label>
+                <label>Заголовок для поиска<input name="seo_title" placeholder="Можно оставить как заголовок поста"></label>
+                <label>Описание для поиска<input name="seo_description" placeholder="Короткое описание для Яндекса/Google"></label>
                 <label class="admin-check"><input type="checkbox" name="is_visible" checked> Показывать</label>
+                <p class="admin-help admin-wide">Номер поста в Telegram нужен сайту, чтобы не импортировать один и тот же пост повторно. При ручном добавлении его можно не заполнять.</p>
                 <button class="btn btn--primary" type="submit">Добавить пост</button>
             </form>
             {% for post in posts %}
             <form method="post" action="/admin/blog/save" class="admin-row">
                 <input type="hidden" name="id" value="{{ post.id }}">
-                <input name="title" value="{{ post.title }}">
-                <input name="slug" value="{{ post.slug }}">
-                <input name="telegram_message_id" value="{{ post.telegram_message_id or '' }}">
-                <input name="created_at" value="{{ post.created_at }}">
-                <textarea name="text_markdown" rows="3">{{ post.text_markdown }}</textarea>
-                <input name="seo_title" value="{{ post.seo_title }}">
-                <input name="seo_description" value="{{ post.seo_description }}">
+                <label>Заголовок<input name="title" value="{{ post.title }}"></label>
+                <label>Адрес страницы<input name="slug" value="{{ post.slug }}"></label>
+                <label>Номер в Telegram<input name="telegram_message_id" value="{{ post.telegram_message_id or '' }}"></label>
+                <label>Дата<input name="created_at" value="{{ post.created_at }}"></label>
+                <label>Текст<textarea name="text_markdown" rows="3">{{ post.text_markdown }}</textarea></label>
+                <label>Заголовок для поиска<input name="seo_title" value="{{ post.seo_title }}"></label>
+                <label>Описание для поиска<input name="seo_description" value="{{ post.seo_description }}"></label>
                 <label class="admin-check"><input type="checkbox" name="is_visible" {% if post.is_visible %}checked{% endif %}> Видим</label>
                 <button class="btn btn--primary" type="submit">Сохранить</button>
             </form>
