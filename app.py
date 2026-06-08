@@ -209,10 +209,14 @@ class Database:
                         title TEXT NOT NULL,
                         slug TEXT NOT NULL UNIQUE,
                         description TEXT NOT NULL DEFAULT '',
+                        service_includes TEXT NOT NULL DEFAULT '',
+                        suitable_for TEXT NOT NULL DEFAULT '',
                         price TEXT NOT NULL DEFAULT '',
                         sort_order INTEGER NOT NULL DEFAULT 0,
                         seo_title TEXT NOT NULL DEFAULT '',
                         seo_description TEXT NOT NULL DEFAULT '',
+                        is_hit INTEGER NOT NULL DEFAULT 0,
+                        portfolio_category_id INTEGER,
                         is_active INTEGER NOT NULL DEFAULT 1
                     );
                     CREATE TABLE IF NOT EXISTS gallery (
@@ -224,10 +228,12 @@ class Database:
                     );
                     CREATE TABLE IF NOT EXISTS reviews (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        service_id INTEGER,
                         client_name TEXT NOT NULL,
                         text TEXT NOT NULL,
                         created_at TEXT NOT NULL,
-                        is_active INTEGER NOT NULL DEFAULT 1
+                        is_active INTEGER NOT NULL DEFAULT 1,
+                        FOREIGN KEY(service_id) REFERENCES services(id)
                     );
                     CREATE TABLE IF NOT EXISTS blog_posts (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -249,7 +255,28 @@ class Database:
                         sort_order INTEGER NOT NULL DEFAULT 0,
                         FOREIGN KEY(post_id) REFERENCES blog_posts(id) ON DELETE CASCADE
                     );
+                    CREATE TABLE IF NOT EXISTS portfolio_categories (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        title TEXT NOT NULL,
+                        slug TEXT NOT NULL UNIQUE,
+                        description TEXT NOT NULL DEFAULT '',
+                        sort_order INTEGER NOT NULL DEFAULT 0,
+                        is_active INTEGER NOT NULL DEFAULT 1
+                    );
+                    CREATE TABLE IF NOT EXISTS portfolio_photos (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        category_id INTEGER,
+                        service_id INTEGER,
+                        image_path TEXT NOT NULL,
+                        alt_text TEXT NOT NULL DEFAULT '',
+                        sort_order INTEGER NOT NULL DEFAULT 0,
+                        is_active INTEGER NOT NULL DEFAULT 1,
+                        created_at TEXT NOT NULL,
+                        FOREIGN KEY(category_id) REFERENCES portfolio_categories(id),
+                        FOREIGN KEY(service_id) REFERENCES services(id)
+                    );
                 """)
+                await self.migrate_db(db)
                 await self.seed_defaults(db)
                 await db.commit()
                 logger.info("База данных успешно инициализирована")
@@ -257,11 +284,25 @@ class Database:
             logger.error(f"Ошибка инициализации базы данных: {e}")
             raise
 
+    async def migrate_db(self, db):
+        async def ensure_column(table: str, column: str, definition: str):
+            async with db.execute(f"PRAGMA table_info({table})") as cursor:
+                columns = [row[1] for row in await cursor.fetchall()]
+            if column not in columns:
+                await db.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
+
+        await ensure_column("services", "is_hit", "INTEGER NOT NULL DEFAULT 0")
+        await ensure_column("services", "portfolio_category_id", "INTEGER")
+        await ensure_column("services", "service_includes", "TEXT NOT NULL DEFAULT ''")
+        await ensure_column("services", "suitable_for", "TEXT NOT NULL DEFAULT ''")
+        await ensure_column("reviews", "service_id", "INTEGER")
+
     async def seed_defaults(self, db):
         default_settings = {
             "master_name": "Тина Борке",
             "city": "Санкт-Петербург",
             "phone": "+7 999 000-00-00",
+            "contact_email": "",
             "telegram_url": "https://t.me/TinaBorkeMakeUp",
             "working_hours": "Ежедневно по предварительной записи",
             "area_served": "Санкт-Петербург и районы выезда",
@@ -274,6 +315,14 @@ class Database:
         }
         for key, value in default_settings.items():
             await db.execute("INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)", (key, value))
+
+        default_service_includes = "\n".join([
+            "Предварительное обсуждение образа и пожеланий.",
+            "Подбор оттенков под внешность, событие и одежду.",
+            "Аккуратная работа профессиональными продуктами.",
+            "Финальные рекомендации по сохранению образа.",
+        ])
+        default_suitable_for = "Услуга подойдет, если нужен продуманный образ без перегруза: для праздника, съемки, важной встречи или личного события."
 
         default_services = [
             ("Дневной макияж", "dnevnoy-makiyazh", "Легкий аккуратный макияж на каждый день.", "от 2 500 ₽", 10),
@@ -289,6 +338,34 @@ class Database:
                 (title, slug, description, price, sort_order, seo_title, seo_description, is_active)
                 VALUES (?, ?, ?, ?, ?, ?, ?, 1)
             """, (title, slug, description, price, sort_order, title[:60], plain_excerpt(description)))
+        await db.execute("UPDATE services SET is_hit = 1 WHERE slug = ? AND is_hit = 0", ("lifting-makiyazh",))
+        await db.execute("UPDATE services SET service_includes = ? WHERE service_includes = ''", (default_service_includes,))
+        await db.execute("UPDATE services SET suitable_for = ? WHERE suitable_for = ''", (default_suitable_for,))
+
+        default_categories = [
+            ("Свадебный макияж", "svadebnyy-makiyazh", "Нежные и стойкие свадебные образы для утра невесты и фотосессии.", 10),
+            ("Выпускной", "vypusknoy", "Образы для выпускниц: свежий макияж, укладка и гармония с платьем.", 20),
+            ("День рождения", "den-rozhdeniya", "Яркие, праздничные и аккуратные образы для особого дня.", 30),
+            ("Вечерний макияж", "vecherniy-makiyazh", "Выразительные вечерние образы для событий, съемок и праздников.", 40),
+            ("Лифтинг макияж", "lifting-makiyazh", "Деликатные лифтинг-образы с акцентом на свежесть и ухоженность.", 50),
+        ]
+        for title, slug, description, sort_order in default_categories:
+            await db.execute("""
+                INSERT OR IGNORE INTO portfolio_categories (title, slug, description, sort_order, is_active)
+                VALUES (?, ?, ?, ?, 1)
+            """, (title, slug, description, sort_order))
+
+        category_links = {
+            "lifting-makiyazh": "lifting-makiyazh",
+            "vecherniy-makiyazh": "vecherniy-makiyazh",
+            "svadebnyy-obraz": "svadebnyy-makiyazh",
+        }
+        for service_slug, category_slug in category_links.items():
+            await db.execute("""
+                UPDATE services
+                SET portfolio_category_id = (SELECT id FROM portfolio_categories WHERE slug = ?)
+                WHERE slug = ? AND portfolio_category_id IS NULL
+            """, (category_slug, service_slug))
 
         default_reviews = [
             ("Клиент", "Очень аккуратная работа и приятная атмосфера. Образ продержался весь день."),
@@ -379,7 +456,12 @@ class Database:
         return await self.fetch_all(f"SELECT * FROM services {where} ORDER BY sort_order, id")
 
     async def get_service_by_slug(self, slug: str) -> Optional[dict]:
-        return await self.fetch_one("SELECT * FROM services WHERE slug = ? AND is_active = 1", (slug,))
+        return await self.fetch_one("""
+            SELECT services.*, portfolio_categories.slug AS portfolio_slug, portfolio_categories.title AS portfolio_title
+            FROM services
+            LEFT JOIN portfolio_categories ON portfolio_categories.id = services.portfolio_category_id
+            WHERE services.slug = ? AND services.is_active = 1
+        """, (slug,))
 
     async def save_service(self, form: dict):
         service_id = form.get("id")
@@ -389,44 +471,76 @@ class Database:
             title,
             slug,
             form.get("description") or "",
+            form.get("service_includes") or "",
+            form.get("suitable_for") or "",
             form.get("price") or "",
             int(form.get("sort_order") or 0),
             form.get("seo_title") or title[:60],
             form.get("seo_description") or plain_excerpt(form.get("description") or title),
+            1 if form.get("is_hit") == "on" else 0,
+            int(form["portfolio_category_id"]) if form.get("portfolio_category_id") else None,
             1 if form.get("is_active") == "on" else 0,
         )
         if service_id:
             await self.execute("""
                 UPDATE services
-                SET title=?, slug=?, description=?, price=?, sort_order=?, seo_title=?, seo_description=?, is_active=?
+                SET title=?, slug=?, description=?, service_includes=?, suitable_for=?, price=?, sort_order=?, seo_title=?, seo_description=?,
+                    is_hit=?, portfolio_category_id=?, is_active=?
                 WHERE id=?
             """, values + (service_id,))
         else:
             await self.execute("""
                 INSERT INTO services
-                (title, slug, description, price, sort_order, seo_title, seo_description, is_active)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                (title, slug, description, service_includes, suitable_for, price, sort_order, seo_title, seo_description, is_hit, portfolio_category_id, is_active)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, values)
 
     async def delete_service(self, service_id: int):
         await self.execute("DELETE FROM services WHERE id = ?", (service_id,))
 
-    async def get_reviews(self, active_only: bool = True) -> list[dict]:
-        where = "WHERE is_active = 1" if active_only else ""
-        return await self.fetch_all(f"SELECT * FROM reviews {where} ORDER BY created_at DESC, id DESC")
+    async def get_reviews(
+        self,
+        active_only: bool = True,
+        service_id: Optional[int] = None,
+        global_only: bool = False,
+    ) -> list[dict]:
+        clauses = []
+        params = []
+        if active_only:
+            clauses.append("reviews.is_active = 1")
+        if service_id is not None:
+            clauses.append("reviews.service_id = ?")
+            params.append(service_id)
+        elif global_only:
+            clauses.append("reviews.service_id IS NULL")
+        where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+        return await self.fetch_all(f"""
+            SELECT reviews.*, services.title AS service_title
+            FROM reviews
+            LEFT JOIN services ON services.id = reviews.service_id
+            {where}
+            ORDER BY reviews.created_at DESC, reviews.id DESC
+        """, tuple(params))
 
     async def save_review(self, form: dict):
         review_id = form.get("id")
         values = (
+            int(form["service_id"]) if form.get("service_id") else None,
             form.get("client_name") or "",
             form.get("text") or "",
             form.get("created_at") or get_moscow_time().strftime("%Y-%m-%d"),
             1 if form.get("is_active") == "on" else 0,
         )
         if review_id:
-            await self.execute("UPDATE reviews SET client_name=?, text=?, created_at=?, is_active=? WHERE id=?", values + (review_id,))
+            await self.execute(
+                "UPDATE reviews SET service_id=?, client_name=?, text=?, created_at=?, is_active=? WHERE id=?",
+                values + (review_id,),
+            )
         else:
-            await self.execute("INSERT INTO reviews (client_name, text, created_at, is_active) VALUES (?, ?, ?, ?)", values)
+            await self.execute(
+                "INSERT INTO reviews (service_id, client_name, text, created_at, is_active) VALUES (?, ?, ?, ?, ?)",
+                values,
+            )
 
     async def delete_review(self, review_id: int):
         await self.execute("DELETE FROM reviews WHERE id = ?", (review_id,))
@@ -453,6 +567,95 @@ class Database:
 
     async def delete_gallery_item(self, item_id: int):
         await self.execute("DELETE FROM gallery WHERE id = ?", (item_id,))
+
+    async def get_portfolio_categories(self, active_only: bool = True) -> list[dict]:
+        where = "WHERE portfolio_categories.is_active = 1" if active_only else ""
+        return await self.fetch_all(f"""
+            SELECT portfolio_categories.*,
+                   COUNT(CASE WHEN portfolio_photos.is_active = 1 THEN portfolio_photos.id END) AS photo_count
+            FROM portfolio_categories
+            LEFT JOIN portfolio_photos ON portfolio_photos.category_id = portfolio_categories.id
+            {where}
+            GROUP BY portfolio_categories.id
+            ORDER BY portfolio_categories.sort_order, portfolio_categories.id
+        """)
+
+    async def get_portfolio_category(self, slug: str) -> Optional[dict]:
+        category = await self.fetch_one("SELECT * FROM portfolio_categories WHERE slug = ? AND is_active = 1", (slug,))
+        if category:
+            category["photos"] = await self.fetch_all("""
+                SELECT portfolio_photos.*, services.title AS service_title, services.slug AS service_slug
+                FROM portfolio_photos
+                LEFT JOIN services ON services.id = portfolio_photos.service_id
+                WHERE portfolio_photos.category_id = ? AND portfolio_photos.is_active = 1
+                ORDER BY portfolio_photos.sort_order, portfolio_photos.id
+            """, (category["id"],))
+        return category
+
+    async def save_portfolio_category(self, form: dict):
+        category_id = form.get("id")
+        title = (form.get("title") or "").strip()
+        slug = slugify(form.get("slug") or title)
+        values = (
+            title,
+            slug,
+            form.get("description") or "",
+            int(form.get("sort_order") or 0),
+            1 if form.get("is_active") == "on" else 0,
+        )
+        if category_id:
+            await self.execute("""
+                UPDATE portfolio_categories
+                SET title=?, slug=?, description=?, sort_order=?, is_active=?
+                WHERE id=?
+            """, values + (category_id,))
+        else:
+            await self.execute("""
+                INSERT INTO portfolio_categories (title, slug, description, sort_order, is_active)
+                VALUES (?, ?, ?, ?, ?)
+            """, values)
+
+    async def get_portfolio_photos(self, active_only: bool = False) -> list[dict]:
+        where = "WHERE portfolio_photos.is_active = 1" if active_only else ""
+        return await self.fetch_all(f"""
+            SELECT portfolio_photos.*, portfolio_categories.title AS category_title, services.title AS service_title
+            FROM portfolio_photos
+            LEFT JOIN portfolio_categories ON portfolio_categories.id = portfolio_photos.category_id
+            LEFT JOIN services ON services.id = portfolio_photos.service_id
+            {where}
+            ORDER BY portfolio_photos.sort_order, portfolio_photos.id DESC
+        """)
+
+    async def save_portfolio_photo(self, image_path: str, form: dict):
+        await self.execute("""
+            INSERT INTO portfolio_photos
+            (category_id, service_id, image_path, alt_text, sort_order, is_active, created_at)
+            VALUES (?, ?, ?, ?, ?, 1, ?)
+        """, (
+            int(form["category_id"]) if form.get("category_id") else None,
+            int(form["service_id"]) if form.get("service_id") else None,
+            image_path,
+            form.get("alt_text") or "Работа визажиста",
+            int(form.get("sort_order") or 0),
+            get_moscow_time().strftime("%Y-%m-%d %H:%M:%S"),
+        ))
+
+    async def update_portfolio_photo(self, form: dict):
+        await self.execute("""
+            UPDATE portfolio_photos
+            SET category_id=?, service_id=?, alt_text=?, sort_order=?, is_active=?
+            WHERE id=?
+        """, (
+            int(form["category_id"]) if form.get("category_id") else None,
+            int(form["service_id"]) if form.get("service_id") else None,
+            form.get("alt_text") or "",
+            int(form.get("sort_order") or 0),
+            1 if form.get("is_active") == "on" else 0,
+            form.get("id"),
+        ))
+
+    async def delete_portfolio_photo(self, photo_id: int):
+        await self.execute("DELETE FROM portfolio_photos WHERE id = ?", (photo_id,))
 
     async def get_blog_posts(self, visible_only: bool = True) -> list[dict]:
         where = "WHERE is_visible = 1" if visible_only else ""
@@ -621,7 +824,7 @@ logger.info("Сервисы инициализированы")
 
 # ========== СОЗДАНИЕ ДИРЕКТОРИЙ ==========
 logger.info("Проверка и создание необходимых директорий...")
-directories = ["static", "static/css", "static/js", "static/images", "static/uploads", "static/blog_photos", "templates"]
+directories = ["static", "static/css", "static/js", "static/images", "static/uploads", "static/uploads/portfolio", "static/blog_photos", "templates"]
 for directory in directories:
     Path(directory).mkdir(exist_ok=True)
     logger.info(f"Директория {directory} создана/проверена")
@@ -709,7 +912,9 @@ async def save_upload(file: UploadFile, directory: str) -> str:
     suffix = Path(file.filename or "").suffix.lower()
     if suffix not in ALLOWED_IMAGE_EXTENSIONS:
         raise HTTPException(status_code=400, detail="Разрешены только JPG, PNG и WebP")
-    safe_name = f"{uuid4().hex}{suffix}"
+    prefix = "portfolio" if "portfolio" in directory.replace("\\", "/") else "upload"
+    timestamp = get_moscow_time().strftime("%Y_%m_%d_%H%M%S")
+    safe_name = f"{prefix}_{timestamp}_{uuid4().hex[:8]}{suffix}"
     target_dir = Path(directory)
     target_dir.mkdir(parents=True, exist_ok=True)
     target = target_dir / safe_name
@@ -728,7 +933,7 @@ async def read_root(request: Request):
         logger.info("Рендеринг index.html из templates")
         site_settings = await db.get_settings()
         services = await db.get_services()
-        reviews = await db.get_reviews()
+        reviews = await db.get_reviews(global_only=True)
         gallery = await db.get_gallery()
         json_ld = {
             "@context": "https://schema.org",
@@ -736,6 +941,7 @@ async def read_root(request: Request):
             "name": f"Визажист {site_settings.get('master_name', 'Тина Борке')}",
             "description": site_settings.get("home_description", ""),
             "telephone": site_settings.get("phone", ""),
+            "email": site_settings.get("contact_email", ""),
             "priceRange": "₽₽",
             "address": {
                 "@type": "PostalAddress",
@@ -808,12 +1014,40 @@ async def blog_post(request: Request, slug: str):
         "json_ld": json.dumps(article_ld, ensure_ascii=False),
     })
 
+@app.get("/portfolio", response_class=HTMLResponse)
+async def portfolio_index(request: Request):
+    site_settings = await db.get_settings()
+    categories = await db.get_portfolio_categories()
+    return templates.TemplateResponse(request, "portfolio.html", {
+        "site_settings": site_settings,
+        "categories": categories,
+        "canonical_url": settings.BASE_URL + "/portfolio",
+    })
+
+@app.get("/portfolio/{category_slug}", response_class=HTMLResponse)
+async def portfolio_category_page(request: Request, category_slug: str):
+    site_settings = await db.get_settings()
+    category = await db.get_portfolio_category(category_slug)
+    if not category:
+        raise HTTPException(status_code=404, detail="Категория портфолио не найдена")
+    return templates.TemplateResponse(request, "portfolio_category.html", {
+        "site_settings": site_settings,
+        "category": category,
+        "canonical_url": settings.BASE_URL + f"/portfolio/{category_slug}",
+    })
+
 @app.get("/uslugi/{slug}", response_class=HTMLResponse)
 async def service_page(request: Request, slug: str):
     site_settings = await db.get_settings()
     service = await db.get_service_by_slug(slug)
     if not service:
         raise HTTPException(status_code=404, detail="Услуга не найдена")
+    reviews = await db.get_reviews(service_id=service["id"])
+    service_include_items = [
+        line.strip(" -\t")
+        for line in (service.get("service_includes") or "").splitlines()
+        if line.strip(" -\t")
+    ]
     service_ld = {
         "@context": "https://schema.org",
         "@type": "Service",
@@ -824,10 +1058,12 @@ async def service_page(request: Request, slug: str):
         "offers": {"@type": "Offer", "price": service["price"], "priceCurrency": "RUB"},
     }
     return templates.TemplateResponse(request, "service.html", {
-        "site_settings": site_settings,
-        "service": service,
-        "canonical_url": settings.BASE_URL + f"/uslugi/{slug}",
-        "json_ld": json.dumps(service_ld, ensure_ascii=False),
+            "site_settings": site_settings,
+            "service": service,
+            "service_include_items": service_include_items,
+            "reviews": reviews,
+            "canonical_url": settings.BASE_URL + f"/uslugi/{slug}",
+            "json_ld": json.dumps(service_ld, ensure_ascii=False),
     })
 
 @app.get("/robots.txt", response_class=PlainTextResponse)
@@ -838,7 +1074,8 @@ async def robots_txt():
 async def sitemap_xml():
     services = await db.get_services()
     posts = await db.get_blog_posts()
-    urls = ["/", "/about", "/blog"] + [f"/uslugi/{item['slug']}" for item in services] + [f"/blog/{item['slug']}" for item in posts]
+    categories = await db.get_portfolio_categories()
+    urls = ["/", "/about", "/blog", "/portfolio"] + [f"/portfolio/{item['slug']}" for item in categories] + [f"/uslugi/{item['slug']}" for item in services] + [f"/blog/{item['slug']}" for item in posts]
     body = "\n".join(f"<url><loc>{settings.BASE_URL}{url}</loc></url>" for url in urls)
     return PlainTextResponse(
         f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n{body}\n</urlset>',
@@ -915,6 +1152,8 @@ async def admin_dashboard(request: Request, _: str = Depends(require_admin)):
         "reviews": await db.get_reviews(active_only=False),
         "gallery": await db.get_gallery(active_only=False),
         "posts": await db.get_blog_posts(visible_only=False),
+        "portfolio_categories": await db.get_portfolio_categories(active_only=False),
+        "portfolio_photos": await db.get_portfolio_photos(active_only=False),
     })
 
 @app.post("/admin/settings")
@@ -922,7 +1161,7 @@ async def admin_save_settings(request: Request, _: str = Depends(require_admin))
     form = dict(await request.form())
     allowed = {
         "master_name", "city", "phone", "telegram_url", "working_hours", "area_served",
-        "about_text", "promo_text", "home_title", "home_description", "blog_title", "blog_description",
+        "contact_email", "about_text", "promo_text", "home_title", "home_description", "blog_title", "blog_description",
     }
     await db.update_settings({key: form.get(key, "") for key in allowed})
     return RedirectResponse("/admin", status_code=303)
@@ -967,6 +1206,32 @@ async def admin_save_gallery(request: Request, _: str = Depends(require_admin)):
 async def admin_delete_gallery(item_id: int, _: str = Depends(require_admin)):
     await db.delete_gallery_item(item_id)
     return RedirectResponse("/admin#gallery", status_code=303)
+
+@app.post("/admin/portfolio/categories/save")
+async def admin_save_portfolio_category(request: Request, _: str = Depends(require_admin)):
+    await db.save_portfolio_category(dict(await request.form()))
+    return RedirectResponse("/admin#portfolio", status_code=303)
+
+@app.post("/admin/portfolio/upload")
+async def admin_upload_portfolio(
+    image: UploadFile = File(...),
+    request: Request = None,
+    _: str = Depends(require_admin),
+):
+    form = dict(await request.form())
+    image_path = await save_upload(image, "static/uploads/portfolio")
+    await db.save_portfolio_photo(image_path, form)
+    return RedirectResponse("/admin#portfolio", status_code=303)
+
+@app.post("/admin/portfolio/save")
+async def admin_save_portfolio_photo(request: Request, _: str = Depends(require_admin)):
+    await db.update_portfolio_photo(dict(await request.form()))
+    return RedirectResponse("/admin#portfolio", status_code=303)
+
+@app.post("/admin/portfolio/{photo_id}/delete")
+async def admin_delete_portfolio_photo(photo_id: int, _: str = Depends(require_admin)):
+    await db.delete_portfolio_photo(photo_id)
+    return RedirectResponse("/admin#portfolio", status_code=303)
 
 @app.post("/admin/blog/save")
 async def admin_save_blog(request: Request, _: str = Depends(require_admin)):

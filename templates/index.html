@@ -30,7 +30,7 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/static/images/favicon-16x16.png">
     <link rel="manifest" href="/static/images/site.webmanifest">
 
-    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/style.css?v=5">
 </head>
 <body>
     <header class="header" id="header">
@@ -41,10 +41,10 @@
                 </div>
                 <nav class="header__nav">
                     <ul class="nav-list">
-                        <li><a href="/about" class="nav-link">Обо мне</a></li>
+                        <li><a href="#about" class="nav-link">Обо мне</a></li>
                         <li><a href="#services" class="nav-link">Услуги</a></li>
                         <li><a href="#events" class="nav-link">Мероприятия</a></li>
-                        <li><a href="#" class="nav-link" data-page="portfolio">Портфолио</a></li>
+                        <li><a href="/portfolio" class="nav-link">Портфолио</a></li>
                         <li><a href="/blog" class="nav-link">Мой Блог</a></li>
                         <li><a href="#contacts" class="nav-link">Контакты</a></li>
                         <li><a href="#booking" class="nav-link">Записаться</a></li>
@@ -120,8 +120,8 @@
                     <h3>Популярные услуги</h3>
                     <div class="services__grid">
                         {% for service in services %}
-                        <div class="service-card{% if loop.index == 3 %} service-card--featured{% endif %}">
-                            {% if loop.index == 3 %}<div class="service-card__badge">Хит</div>{% endif %}
+                        <div class="service-card{% if service.is_hit %} service-card--featured{% endif %}">
+                            {% if service.is_hit %}<div class="service-card__badge">Хит</div>{% endif %}
                             <h4>{{ service.title }}</h4>
                             <p>{{ service.description }}</p>
                             <div class="service-card__price">{{ service.price }}</div>
@@ -166,7 +166,7 @@
         </section>
 
         <!-- Reviews Section -->
-        <section class="reviews">
+        <section class="reviews" id="reviews">
             <div class="container">
                 <h2 class="reviews__title">Что говорят мои клиенты</h2>
                 <div class="reviews__subtitle">
@@ -214,6 +214,15 @@
                             <p><a href="{{ site_settings.telegram_url }}" target="_blank" rel="noopener">Telegram</a></p>
                         </div>
                     </div>
+                    {% if site_settings.contact_email %}
+                    <div class="contact-block">
+                        <div class="contact-block__icon">✉</div>
+                        <div class="contact-block__content">
+                            <h4>Email</h4>
+                            <p><a href="mailto:{{ site_settings.contact_email }}">{{ site_settings.contact_email }}</a></p>
+                        </div>
+                    </div>
+                    {% endif %}
                     <div class="contact-block contact-block--centered">
                         <div class="contact-block__icon">🚗</div>
                         <div class="contact-block__content">
@@ -293,6 +302,12 @@
                         <strong>💬 Telegram:</strong>
                         <a href="{{ site_settings.telegram_url }}" target="_blank" rel="noopener">Telegram</a>
                     </div>
+                    {% if site_settings.contact_email %}
+                    <div class="contact-item">
+                        <strong>✉ Email:</strong>
+                        <a href="mailto:{{ site_settings.contact_email }}">{{ site_settings.contact_email }}</a>
+                    </div>
+                    {% endif %}
                     <div class="contact-item">
                         <strong>🚗 Выезд:</strong> {{ site_settings.area_served }}
                     </div>
@@ -314,58 +329,6 @@
             </div>
         </div>
     </footer>
-
-    <!-- Portfolio Modal -->
-    <div class="modal hidden" id="portfolioModal">
-        <div class="modal__backdrop"></div>
-        <div class="modal__content">
-            <div class="modal__header">
-                <h3>Портфолио</h3>
-                <button class="modal__close" id="closePortfolioModal">&times;</button>
-            </div>
-            <div class="modal__body">
-                <div class="placeholder-content">
-                    <div class="placeholder-icon">🎨</div>
-                    <h4>Страница находится в разработке</h4>
-                    <p>Скоро здесь будет представлено портфолио с лучшими работами</p>
-
-                    <div class="placeholder-links">
-                        <h5>А пока вы можете ознакомиться с моими работами</h5>
-                        <p>Временно мои работы доступны в облачном хранилище</p>
-                        <a href="https://cloud.mail.ru/public/4o2J/ekws5hLfs" target="_blank" class="btn btn--primary portfolio-cloud-btn">Посмотреть портфолио в облаке</a>
-                    </div>
-
-                    <button class="btn btn--secondary" onclick="closeModal('portfolioModal')">Вернуться на главную</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Blog Modal -->
-    <div class="modal hidden" id="blogModal">
-        <div class="modal__backdrop"></div>
-        <div class="modal__content">
-            <div class="modal__header">
-                <h3>Мой Блог</h3>
-                <button class="modal__close" id="closeBlogModal">&times;</button>
-            </div>
-            <div class="modal__body">
-                <div class="placeholder-content">
-                    <div class="placeholder-icon">📝</div>
-                    <h4>Страница находится в разработке</h4>
-                    <p>Скоро здесь появятся статьи о макияже, трендах и полезные советы</p>
-
-                    <div class="placeholder-links">
-                        <h5>Следите за моими новыми работами</h5>
-                        <p>Подписывайтесь на мой Telegram-канал, чтобы первыми видеть новые образы и получать советы по макияжу</p>
-                        <a href="https://t.me/TinaBorkeMakeUp" target="_blank" class="btn btn--primary blog-telegram-btn">Перейти в Telegram-канал</a>
-                    </div>
-
-                    <button class="btn btn--secondary" onclick="closeModal('blogModal')">Вернуться на главную</button>
-                </div>
-            </div>
-        </div>
-    </div>
 
     {% if json_ld %}
     <script type="application/ld+json">{{ json_ld|safe }}</script>

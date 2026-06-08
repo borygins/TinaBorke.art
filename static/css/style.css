@@ -1845,11 +1845,19 @@ img { max-width: 100%; height: auto; }
 }
 
 .blog-card img {
-    width: 100%;
-    aspect-ratio: 16 / 10;
+  width: 100%;
+  aspect-ratio: 16 / 10;
     object-fit: cover;
     border-radius: var(--radius-base);
-    margin-bottom: 14px;
+  margin-bottom: 14px;
+}
+
+.blog-empty {
+  padding: 20px;
+  border: 1px solid var(--color-card-border);
+  border-radius: var(--radius-base);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
 }
 
 .article-page { max-width: 780px; }
@@ -2105,5 +2113,293 @@ body {
         transform: translateY(0);
         opacity: 1;
         visibility: visible;
+    }
+}
+
+/* Service detail and portfolio pages */
+.service-detail-page,
+.portfolio-page {
+    background:
+        linear-gradient(180deg, rgba(26, 26, 26, 0.96), rgba(39, 32, 31, 0.98)),
+        var(--dark-bg-primary, #1a1a1a);
+    color: var(--cream, #fff8ec);
+}
+
+.service-detail {
+    width: min(100% - 32px, 1120px);
+    margin: 0 auto;
+    padding: 112px 0 64px;
+}
+
+.service-breadcrumbs,
+.portfolio-top-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+}
+
+.service-breadcrumbs a {
+    color: var(--gold, #d4af37);
+}
+
+.service-hero-card {
+    display: grid;
+    place-items: center;
+    min-height: 420px;
+    padding: 56px 32px;
+    border: 1px solid rgba(212, 175, 55, 0.24);
+    border-radius: 8px;
+    background:
+        radial-gradient(circle at 50% 0%, rgba(212, 175, 55, 0.18), transparent 42%),
+        rgba(255, 248, 236, 0.06);
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
+    text-align: center;
+}
+
+.service-hero-card__content {
+    max-width: 760px;
+}
+
+.service-hero-card h1,
+.portfolio-hero h1 {
+    margin: 12px 0 16px;
+    color: var(--cream, #fff8ec);
+    font-size: clamp(2.4rem, 6vw, 5rem);
+    line-height: 1.02;
+    letter-spacing: 0;
+}
+
+.service-lead,
+.portfolio-hero p {
+    max-width: 720px;
+    margin: 0 auto;
+    color: rgba(255, 248, 236, 0.78);
+    font-size: 1.1rem;
+}
+
+.service-hit-badge,
+.portfolio-card span {
+    display: inline-flex;
+    align-items: center;
+    min-height: 32px;
+    padding: 0 12px;
+    border-radius: 999px;
+    background: rgba(212, 175, 55, 0.16);
+    color: var(--gold, #d4af37);
+    font-weight: 700;
+}
+
+.service-price-panel {
+    width: min(100%, 360px);
+    margin: 28px auto;
+    padding: 18px;
+    border: 1px solid rgba(212, 175, 55, 0.24);
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.18);
+}
+
+.service-price-panel span {
+    display: block;
+    color: rgba(255, 248, 236, 0.68);
+    font-size: 0.9rem;
+}
+
+.service-price-panel strong {
+    display: block;
+    margin-top: 4px;
+    color: var(--gold, #d4af37);
+    font-size: 1.8rem;
+}
+
+.service-actions {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.service-detail-grid,
+.service-review-grid,
+.portfolio-category-grid,
+.portfolio-photo-grid {
+    display: grid;
+    gap: 18px;
+    margin-top: 28px;
+}
+
+.service-detail-grid,
+.service-review-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.service-info-card,
+.service-review-card,
+.service-seo-text,
+.portfolio-card,
+.portfolio-empty {
+    border: 1px solid rgba(212, 175, 55, 0.2);
+    border-radius: 8px;
+    background: rgba(255, 248, 236, 0.07);
+    color: var(--cream, #fff8ec);
+    padding: 24px;
+}
+
+.service-info-card h2,
+.service-reviews h2,
+.service-seo-text h2,
+.portfolio-card h2 {
+    margin: 0 0 12px;
+    color: var(--gold, #d4af37);
+    letter-spacing: 0;
+}
+
+.service-info-card p,
+.service-info-card li,
+.service-review-card p,
+.service-seo-text p,
+.portfolio-card p,
+.portfolio-empty {
+    color: rgba(255, 248, 236, 0.78);
+}
+
+.service-reviews,
+.service-seo-text {
+    margin-top: 28px;
+}
+
+.portfolio-hero {
+    padding: 36px 0 12px;
+    text-align: center;
+}
+
+.portfolio-category-grid {
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.portfolio-card {
+    display: grid;
+    gap: 10px;
+    min-height: 220px;
+    align-content: end;
+    transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+}
+
+.portfolio-card:hover {
+    transform: translateY(-3px);
+    border-color: rgba(212, 175, 55, 0.45);
+    background: rgba(255, 248, 236, 0.1);
+}
+
+.portfolio-photo-grid {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.portfolio-photo {
+    display: block;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    border-radius: 8px;
+    overflow: hidden;
+    background: transparent;
+    cursor: zoom-in;
+}
+
+.portfolio-photo img {
+    width: 100%;
+    aspect-ratio: 4 / 5;
+    object-fit: cover;
+    transition: transform 220ms ease;
+}
+
+.portfolio-photo:hover img {
+    transform: scale(1.035);
+}
+
+.lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: grid;
+    place-items: center;
+    background: rgba(0, 0, 0, 0.88);
+}
+
+.lightbox[hidden] {
+    display: none;
+}
+
+.lightbox__image {
+    max-width: min(92vw, 1100px);
+    max-height: 86vh;
+    object-fit: contain;
+    border-radius: 8px;
+}
+
+.lightbox__close,
+.lightbox__nav {
+    position: fixed;
+    display: grid;
+    place-items: center;
+    width: 48px;
+    height: 48px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    cursor: pointer;
+    font-size: 2rem;
+}
+
+.lightbox__close {
+    top: 24px;
+    right: 24px;
+}
+
+.lightbox__nav--prev {
+    left: 24px;
+}
+
+.lightbox__nav--next {
+    right: 24px;
+}
+
+@media (max-width: 640px) {
+    .service-detail {
+        width: min(100% - 24px, 100%);
+        padding-top: 88px;
+    }
+
+    .service-hero-card {
+        min-height: auto;
+        padding: 36px 18px;
+    }
+
+    .service-detail-grid,
+    .service-review-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .service-actions .btn {
+        width: 100%;
+    }
+
+    .portfolio-photo-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+    }
+
+    .lightbox__nav {
+        bottom: 24px;
+    }
+
+    .lightbox__nav--prev {
+        left: calc(50% - 60px);
+    }
+
+    .lightbox__nav--next {
+        right: calc(50% - 60px);
     }
 }

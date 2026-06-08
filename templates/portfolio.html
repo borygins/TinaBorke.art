@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Портфолио работ {{ site_settings.master_name }}</title>
+    <meta name="description" content="Портфолио визажиста {{ site_settings.master_name }}: свадебный, вечерний, лифтинг макияж и образы для мероприятий.">
+    <link rel="canonical" href="{{ canonical_url }}">
+    <link rel="stylesheet" href="/static/css/style.css?v=5">
+    <link rel="stylesheet" href="/static/css/inner-pages.css?v=2">
+</head>
+<body class="inner-page">
+    {% include "_site_header.html" %}
+    <main class="content-page portfolio-page">
+        <section class="portfolio-hero">
+            <h1>Портфолио</h1>
+            <p>Каталоги работ по типам образов. Выберите раздел, чтобы посмотреть примеры крупнее.</p>
+        </section>
+        <section class="portfolio-category-grid">
+            {% for category in categories %}
+            <a class="portfolio-card" href="/portfolio/{{ category.slug }}">
+                <span>{{ category.photo_count }} фото</span>
+                <h2>{{ category.title }}</h2>
+                <p>{{ category.description or 'Работы скоро появятся.' }}</p>
+            </a>
+            {% else %}
+            <div class="portfolio-empty">Разделы портфолио скоро появятся.</div>
+            {% endfor %}
+        </section>
+    </main>
+    {% include "_site_footer.html" %}
+</body>
+</html>

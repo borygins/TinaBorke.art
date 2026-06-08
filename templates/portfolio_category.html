@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ category.title }} | Портфолио {{ site_settings.master_name }}</title>
+    <meta name="description" content="{{ category.description or 'Примеры работ визажиста' }}">
+    <link rel="canonical" href="{{ canonical_url }}">
+    <link rel="stylesheet" href="/static/css/style.css?v=5">
+    <link rel="stylesheet" href="/static/css/inner-pages.css?v=2">
+</head>
+<body class="inner-page">
+    {% include "_site_header.html" %}
+    <main class="content-page portfolio-page">
+        <div class="portfolio-top-actions">
+            <a href="/portfolio" class="btn btn--secondary">К портфолио</a>
+            <a href="/#booking" class="btn btn--primary">Записаться</a>
+        </div>
+        <section class="portfolio-hero">
+            <h1>{{ category.title }}</h1>
+            <p>{{ category.description or 'Работы скоро появятся.' }}</p>
+        </section>
+
+        {% if category.photos %}
+        <section class="portfolio-photo-grid" data-lightbox-gallery>
+            {% for photo in category.photos %}
+            <button class="portfolio-photo" type="button" data-full="{{ photo.image_path }}" data-alt="{{ photo.alt_text }}">
+                <img src="{{ photo.image_path }}" alt="{{ photo.alt_text }}" loading="lazy">
+            </button>
+            {% endfor %}
+        </section>
+        {% else %}
+        <section class="portfolio-empty">Работы скоро появятся.</section>
+        {% endif %}
+    </main>
+    {% include "_site_footer.html" %}
+
+    <div class="lightbox" id="portfolioLightbox" hidden>
+        <button class="lightbox__close" type="button" aria-label="Закрыть">×</button>
+        <button class="lightbox__nav lightbox__nav--prev" type="button" aria-label="Предыдущее фото">‹</button>
+        <img class="lightbox__image" src="" alt="">
+        <button class="lightbox__nav lightbox__nav--next" type="button" aria-label="Следующее фото">›</button>
+    </div>
+    <script src="/static/js/portfolio-lightbox.js"></script>
+</body>
+</html>

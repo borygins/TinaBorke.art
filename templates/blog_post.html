@@ -8,11 +8,13 @@
     <link rel="canonical" href="{{ canonical_url }}">
     <meta property="og:title" content="{{ post.title }}">
     <meta property="og:description" content="{{ post.seo_description }}">
-    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/style.css?v=5">
+    <link rel="stylesheet" href="/static/css/inner-pages.css?v=2">
 </head>
-<body>
-    <main class="content-page">
-        <a href="/blog" class="btn btn--secondary">К блогу</a>
+<body class="inner-page">
+    {% include "_site_header.html" %}
+    <main class="content-page inner-content">
+        <nav class="inner-back"><a href="/blog">К блогу</a></nav>
         <article class="article-page">
             <time>{{ post.created_at }}</time>
             <h1>{{ post.title }}</h1>
@@ -27,6 +29,7 @@
             <a class="btn btn--primary" href="https://t.me/share/url?url={{ canonical_url }}&text={{ post.title }}" target="_blank" rel="noopener">Поделиться</a>
         </article>
     </main>
+    {% include "_site_footer.html" %}
     <script type="application/ld+json">{{ json_ld|safe }}</script>
 </body>
 </html>

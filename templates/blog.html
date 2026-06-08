@@ -6,12 +6,16 @@
     <title>{{ site_settings.blog_title }}</title>
     <meta name="description" content="{{ site_settings.blog_description }}">
     <link rel="canonical" href="{{ canonical_url }}">
-    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/style.css?v=5">
+    <link rel="stylesheet" href="/static/css/inner-pages.css?v=2">
 </head>
-<body>
-    <main class="content-page">
-        <a href="/" class="btn btn--secondary">На главную</a>
-        <h1>Блог</h1>
+<body class="inner-page">
+    {% include "_site_header.html" %}
+    <main class="content-page inner-content">
+        <section class="inner-hero">
+            <h1>Блог</h1>
+            <p>{{ site_settings.blog_description }}</p>
+        </section>
         <div class="blog-grid">
             {% for post in posts %}
             <article class="blog-card">
@@ -22,9 +26,10 @@
                 <a class="btn btn--primary" href="/blog/{{ post.slug }}">Читать далее</a>
             </article>
             {% else %}
-            <p>Пока нет опубликованных постов. Их можно добавить в админке или импортировать из Telegram.</p>
+            <p class="blog-empty">Новости скоро появятся. А пока можно перейти в Telegram-канал мастера.</p>
             {% endfor %}
         </div>
     </main>
+    {% include "_site_footer.html" %}
 </body>
 </html>

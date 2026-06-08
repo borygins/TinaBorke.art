@@ -6,7 +6,7 @@
     <meta name="robots" content="noindex,nofollow">
     <title>Админка TinaBorke.Art</title>
     <link rel="stylesheet" href="/static/css/style.css">
-    <link rel="stylesheet" href="/static/css/admin.css?v=2">
+    <link rel="stylesheet" href="/static/css/admin.css?v=3">
 </head>
 <body class="admin-page">
     <main class="admin-shell">
@@ -21,6 +21,7 @@
         <nav class="admin-tabs" aria-label="Разделы админки">
             <a href="#settings">Настройки</a>
             <a href="#services">Услуги</a>
+            <a href="#portfolio">Портфолио</a>
             <a href="#gallery">Галерея</a>
             <a href="#reviews">Отзывы</a>
             <a href="#blog">Блог</a>
@@ -30,8 +31,8 @@
             <h2>Настройки и SEO</h2>
             <form method="post" action="/admin/settings" class="admin-form">
                 {% for key, label in {
-                    'master_name':'Имя мастера', 'city':'Город', 'phone':'Телефон',
-                    'telegram_url':'Telegram URL', 'working_hours':'Часы работы',
+                    'master_name':'Имя мастера', 'city':'Город', 'phone':'Телефон', 'contact_email':'Email',
+                    'telegram_url':'Ссылка на Telegram', 'working_hours':'Часы работы',
                     'area_served':'Районы выезда', 'promo_text':'Текст акции',
                     'home_title':'Заголовок главной для Яндекса и Google', 'home_description':'Описание главной для Яндекса и Google',
                     'blog_title':'Заголовок блога для Яндекса и Google', 'blog_description':'Описание блога для Яндекса и Google'
@@ -51,9 +52,20 @@
                 <label>Адрес страницы<input name="slug" placeholder="Можно оставить пустым"></label>
                 <label>Цена<input name="price" placeholder="Например: от 3 000 ₽"></label>
                 <label>Порядок показа<input name="sort_order" type="number" value="100" placeholder="100"></label>
-                <label class="admin-wide">Описание услуги<textarea name="description" rows="3" placeholder="Коротко расскажите, что входит в услугу"></textarea></label>
+                <label>Категория портфолио
+                    <select name="portfolio_category_id">
+                        <option value="">Не выбрана</option>
+                        {% for category in portfolio_categories %}
+                        <option value="{{ category.id }}">{{ category.title }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label class="admin-wide">Короткое описание услуги<textarea name="description" rows="3" placeholder="Например: выразительный образ для события, съемки или вечера"></textarea></label>
+                <label class="admin-wide">Что входит в услугу<textarea name="service_includes" rows="5" placeholder="Пишите каждый пункт с новой строки: обсуждение образа, подбор оттенков, работа профессиональными продуктами"></textarea></label>
+                <label class="admin-wide">Кому подходит<textarea name="suitable_for" rows="3" placeholder="Опишите, для каких случаев и клиентов подходит эта услуга"></textarea></label>
                 <label>Заголовок для поиска<input name="seo_title" placeholder="Можно оставить как название услуги"></label>
                 <label>Описание для поиска<input name="seo_description" placeholder="Короткое описание для Яндекса/Google"></label>
+                <label class="admin-check"><input type="checkbox" name="is_hit"> Хит услуги</label>
                 <label class="admin-check"><input type="checkbox" name="is_active" checked> Показывать</label>
                 <p class="admin-help admin-wide">Адрес страницы нужен для красивой ссылки. Если оставить пустым, сайт создаст его сам из названия услуги.</p>
                 <button class="btn btn--primary" type="submit">Добавить услугу</button>
@@ -66,13 +78,114 @@
                     <label>Адрес страницы<input name="slug" value="{{ service.slug }}"></label>
                     <label>Цена<input name="price" value="{{ service.price }}"></label>
                     <label>Порядок<input name="sort_order" type="number" value="{{ service.sort_order }}"></label>
-                    <label>Описание<textarea name="description" rows="2">{{ service.description }}</textarea></label>
+                    <label>Категория портфолио
+                        <select name="portfolio_category_id">
+                            <option value="">Не выбрана</option>
+                            {% for category in portfolio_categories %}
+                            <option value="{{ category.id }}" {% if service.portfolio_category_id == category.id %}selected{% endif %}>{{ category.title }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                    <details class="admin-description-editor admin-wide">
+                        <summary>Описание: {{ service.description[:110] if service.description else 'Описание не заполнено' }} <span aria-hidden="true">✎</span></summary>
+                        <label>Текст описания<textarea name="description" rows="4">{{ service.description }}</textarea></label>
+                    </details>
+                    <details class="admin-description-editor admin-wide">
+                        <summary>Что входит: {{ service.service_includes[:110] if service.service_includes else 'Пункты не заполнены' }} <span aria-hidden="true">✎</span></summary>
+                        <label>Пункты услуги<textarea name="service_includes" rows="5" placeholder="Каждый пункт с новой строки">{{ service.service_includes }}</textarea></label>
+                    </details>
+                    <details class="admin-description-editor admin-wide">
+                        <summary>Кому подходит: {{ service.suitable_for[:110] if service.suitable_for else 'Текст не заполнен' }} <span aria-hidden="true">✎</span></summary>
+                        <label>Текст блока<textarea name="suitable_for" rows="4">{{ service.suitable_for }}</textarea></label>
+                    </details>
                     <label>Заголовок для поиска<input name="seo_title" value="{{ service.seo_title }}"></label>
                     <label>Описание для поиска<input name="seo_description" value="{{ service.seo_description }}"></label>
+                    <label class="admin-check"><input type="checkbox" name="is_hit" {% if service.is_hit %}checked{% endif %}> Хит</label>
                     <label class="admin-check"><input type="checkbox" name="is_active" {% if service.is_active %}checked{% endif %}> Видна</label>
                     <button class="btn btn--primary" type="submit">Сохранить</button>
                 </form>
                 <form method="post" action="/admin/services/{{ service.id }}/delete"><button class="btn btn--secondary" type="submit">Удалить</button></form>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section class="admin-panel" id="portfolio">
+            <h2>Портфолио</h2>
+            <p class="admin-help">Здесь можно создать разделы портфолио и загрузить фото работ. Разделы показываются на странице `/portfolio`.</p>
+
+            <form method="post" action="/admin/portfolio/categories/save" class="admin-form">
+                <label>Название раздела<input name="title" placeholder="Например: Свадебный макияж" required></label>
+                <label>Адрес страницы<input name="slug" placeholder="Можно оставить пустым"></label>
+                <label>Порядок показа<input name="sort_order" type="number" value="100"></label>
+                <label class="admin-wide">Описание раздела<textarea name="description" rows="3" placeholder="Коротко опишите этот тип работ"></textarea></label>
+                <label class="admin-check"><input type="checkbox" name="is_active" checked> Показывать</label>
+                <button class="btn btn--primary" type="submit">Добавить раздел</button>
+            </form>
+
+            <div class="admin-list">
+                {% for category in portfolio_categories %}
+                <form method="post" action="/admin/portfolio/categories/save" class="admin-row">
+                    <input type="hidden" name="id" value="{{ category.id }}">
+                    <label>Название<input name="title" value="{{ category.title }}"></label>
+                    <label>Адрес страницы<input name="slug" value="{{ category.slug }}"></label>
+                    <label>Порядок<input name="sort_order" type="number" value="{{ category.sort_order }}"></label>
+                    <label>Описание<textarea name="description" rows="2">{{ category.description }}</textarea></label>
+                    <label class="admin-check"><input type="checkbox" name="is_active" {% if category.is_active %}checked{% endif %}> Видим</label>
+                    <button class="btn btn--primary" type="submit">Сохранить раздел</button>
+                </form>
+                {% endfor %}
+            </div>
+
+            <form method="post" action="/admin/portfolio/upload" enctype="multipart/form-data" class="admin-form">
+                <label>Фото работы<input type="file" name="image" accept=".jpg,.jpeg,.png,.webp" required></label>
+                <label>Раздел портфолио
+                    <select name="category_id" required>
+                        <option value="">Выберите раздел</option>
+                        {% for category in portfolio_categories %}
+                        <option value="{{ category.id }}">{{ category.title }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label>Связанная услуга
+                    <select name="service_id">
+                        <option value="">Не выбрана</option>
+                        {% for service in services %}
+                        <option value="{{ service.id }}">{{ service.title }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label>Описание фото<input name="alt_text" placeholder="Например: вечерний макияж с сияющей кожей"></label>
+                <label>Порядок показа<input name="sort_order" type="number" value="100"></label>
+                <button class="btn btn--primary" type="submit">Загрузить фото</button>
+            </form>
+
+            <div class="admin-gallery">
+                {% for photo in portfolio_photos %}
+                <form method="post" action="/admin/portfolio/save" class="admin-photo">
+                    <img src="{{ photo.image_path }}" alt="{{ photo.alt_text }}" loading="lazy">
+                    <input type="hidden" name="id" value="{{ photo.id }}">
+                    <label>Раздел
+                        <select name="category_id">
+                            <option value="">Не выбран</option>
+                            {% for category in portfolio_categories %}
+                            <option value="{{ category.id }}" {% if photo.category_id == category.id %}selected{% endif %}>{{ category.title }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                    <label>Услуга
+                        <select name="service_id">
+                            <option value="">Не выбрана</option>
+                            {% for service in services %}
+                            <option value="{{ service.id }}" {% if photo.service_id == service.id %}selected{% endif %}>{{ service.title }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                    <label>Описание фото<input name="alt_text" value="{{ photo.alt_text }}"></label>
+                    <label>Порядок<input name="sort_order" type="number" value="{{ photo.sort_order }}"></label>
+                    <label class="admin-check"><input type="checkbox" name="is_active" {% if photo.is_active %}checked{% endif %}> Видна</label>
+                    <button class="btn btn--primary" type="submit">Сохранить</button>
+                </form>
+                <form method="post" action="/admin/portfolio/{{ photo.id }}/delete"><button class="btn btn--secondary" type="submit">Удалить</button></form>
                 {% endfor %}
             </div>
         </section>
@@ -106,8 +219,17 @@
             <form method="post" action="/admin/reviews/save" class="admin-form">
                 <label>Имя клиента<input name="client_name" placeholder="Например: Анна" required></label>
                 <label>Дата отзыва<input name="created_at" type="date"></label>
+                <label>Где показывать отзыв
+                    <select name="service_id">
+                        <option value="">На главной странице</option>
+                        {% for service in services %}
+                        <option value="{{ service.id }}">На странице услуги: {{ service.title }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
                 <label class="admin-wide">Текст отзыва<textarea name="text" rows="3" placeholder="Вставьте отзыв клиента" required></textarea></label>
                 <label class="admin-check"><input type="checkbox" name="is_active" checked> Показывать</label>
+                <p class="admin-help admin-wide">Если выбрать конкретную услугу, отзыв появится только на странице этой услуги. Если оставить “На главной странице”, отзыв будет общим.</p>
                 <button class="btn btn--primary" type="submit">Добавить отзыв</button>
             </form>
             {% for review in reviews %}
@@ -115,6 +237,14 @@
                 <input type="hidden" name="id" value="{{ review.id }}">
                 <label>Имя клиента<input name="client_name" value="{{ review.client_name }}"></label>
                 <label>Дата<input name="created_at" value="{{ review.created_at }}"></label>
+                <label>Где показывать
+                    <select name="service_id">
+                        <option value="">На главной странице</option>
+                        {% for service in services %}
+                        <option value="{{ service.id }}" {% if review.service_id == service.id %}selected{% endif %}>На странице услуги: {{ service.title }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
                 <label>Текст<textarea name="text" rows="2">{{ review.text }}</textarea></label>
                 <label class="admin-check"><input type="checkbox" name="is_active" {% if review.is_active %}checked{% endif %}> Видим</label>
                 <button class="btn btn--primary" type="submit">Сохранить</button>

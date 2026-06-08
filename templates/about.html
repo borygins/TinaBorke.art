@@ -6,19 +6,28 @@
     <title>О мастере {{ site_settings.master_name }}</title>
     <meta name="description" content="О мастере {{ site_settings.master_name }}: визаж, грим, выезд и запись в {{ site_settings.city }}.">
     <link rel="canonical" href="{{ canonical_url }}">
-    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/style.css?v=5">
+    <link rel="stylesheet" href="/static/css/inner-pages.css?v=2">
 </head>
-<body>
-    <main class="content-page">
-        <a href="/" class="btn btn--secondary">На главную</a>
-        <h1>О мастере {{ site_settings.master_name }}</h1>
-        <p>{{ site_settings.about_text }}</p>
+<body class="inner-page">
+    {% include "_site_header.html" %}
+    <main class="content-page inner-content">
+        <section class="inner-hero">
+            <h1>О мастере {{ site_settings.master_name }}</h1>
+            <p>{{ site_settings.about_text }}</p>
+        </section>
         <section class="content-grid">
             <div><h2>Город</h2><p>{{ site_settings.city }}</p></div>
             <div><h2>Районы выезда</h2><p>{{ site_settings.area_served }}</p></div>
             <div><h2>Часы работы</h2><p>{{ site_settings.working_hours }}</p></div>
-            <div><h2>Контакты</h2><p><a href="tel:{{ site_settings.phone|replace(' ', '')|replace('-', '') }}">{{ site_settings.phone }}</a></p><p><a href="{{ site_settings.telegram_url }}">Telegram</a></p></div>
+            <div>
+                <h2>Контакты</h2>
+                <p><a href="tel:{{ site_settings.phone|replace(' ', '')|replace('-', '') }}">{{ site_settings.phone }}</a></p>
+                {% if site_settings.contact_email %}<p><a href="mailto:{{ site_settings.contact_email }}">{{ site_settings.contact_email }}</a></p>{% endif %}
+                <p><a href="{{ site_settings.telegram_url }}">Telegram</a></p>
+            </div>
         </section>
     </main>
+    {% include "_site_footer.html" %}
 </body>
 </html>

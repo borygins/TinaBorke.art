@@ -101,20 +101,21 @@ function initNavigation() {
     // Handle navigation links
     navLinks.forEach(link => {
     link.addEventListener('click', (e) => {
-        e.preventDefault();
+        const href = link.getAttribute('href') || '';
 
         // Check if it's a modal link
         if (link.hasAttribute('data-page')) {
+            e.preventDefault();
             const page = link.getAttribute('data-page');
             if (page === 'portfolio') {
                 openModal('portfolioModal');
             } else if (page === 'blog') {
                 openModal('blogModal');
             }
-        } else {
+        } else if (href.startsWith('#')) {
+            e.preventDefault();
             // Regular anchor link
-            const targetId = link.getAttribute('href');
-            const targetSection = document.querySelector(targetId);
+            const targetSection = document.querySelector(href);
 
             if (targetSection) {
                 targetSection.scrollIntoView({

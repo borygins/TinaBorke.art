@@ -145,6 +145,38 @@
     line-height: 1.45;
 }
 
+.admin-description-editor {
+    border: 1px solid var(--admin-border);
+    border-radius: 8px;
+    background: #fff;
+    padding: 12px;
+}
+
+.admin-description-editor summary {
+    min-height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    color: var(--admin-text);
+    cursor: pointer;
+    font-weight: 700;
+}
+
+.admin-description-editor summary span {
+    display: inline-grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 999px;
+    background: var(--admin-surface-soft);
+    color: var(--admin-primary);
+}
+
+.admin-description-editor[open] summary {
+    margin-bottom: 10px;
+}
+
 .admin-list > form:not(.admin-row),
 .admin-panel > form[action*="/delete"],
 .admin-panel > form[action*="/toggle"] {

@@ -6,18 +6,81 @@
     <title>{{ service.seo_title or service.title }}</title>
     <meta name="description" content="{{ service.seo_description }}">
     <link rel="canonical" href="{{ canonical_url }}">
-    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/style.css?v=5">
+    <link rel="stylesheet" href="/static/css/inner-pages.css?v=2">
 </head>
-<body>
-    <main class="content-page">
-        <a href="/#services" class="btn btn--secondary">К услугам</a>
-        <article class="article-page">
-            <h1>{{ service.title }}</h1>
-            <p class="service-price">{{ service.price }}</p>
-            <p>{{ service.description }}</p>
-            <a class="btn btn--primary" href="/#booking">Записаться</a>
-        </article>
+<body class="inner-page service-detail-page">
+    {% include "_site_header.html" %}
+    <main class="service-detail">
+        <nav class="service-breadcrumbs">
+            <a href="/">Главная</a>
+            <span>/</span>
+            <a href="/#services">Услуги</a>
+        </nav>
+
+        <section class="service-hero-card">
+            <div class="service-hero-card__content">
+                {% if service.is_hit %}
+                <span class="service-hit-badge">Хит</span>
+                {% endif %}
+                <h1>{{ service.title }}</h1>
+                <p class="service-lead">{{ service.description }}</p>
+                <div class="service-price-panel">
+                    <span>Стоимость</span>
+                    <strong>{{ service.price }}</strong>
+                </div>
+                <div class="service-actions">
+                    <a class="btn btn--primary" href="/#booking">Записаться</a>
+                    {% if service.portfolio_slug %}
+                    <a class="btn btn--secondary" href="/portfolio/{{ service.portfolio_slug }}">Посмотреть работы в портфолио</a>
+                    {% else %}
+                    <a class="btn btn--secondary" href="/portfolio">Посмотреть работы в портфолио</a>
+                    {% endif %}
+                </div>
+            </div>
+        </section>
+
+        {% if service_include_items or service.suitable_for %}
+        <section class="service-detail-grid">
+            {% if service_include_items %}
+            <article class="service-info-card">
+                <h2>Что входит в услугу</h2>
+                <ul>
+                    {% for item in service_include_items %}
+                    <li>{{ item }}</li>
+                    {% endfor %}
+                </ul>
+            </article>
+            {% endif %}
+            {% if service.suitable_for %}
+            <article class="service-info-card">
+                <h2>Кому подходит</h2>
+                <p class="service-info-text">{{ service.suitable_for }}</p>
+            </article>
+            {% endif %}
+        </section>
+        {% endif %}
+
+        {% if reviews %}
+        <section class="service-reviews">
+            <h2>Отзывы клиентов</h2>
+            <div class="service-review-grid">
+                {% for review in reviews %}
+                <article class="service-review-card">
+                    <h3>{{ review.client_name }}</h3>
+                    <p>{{ review.text }}</p>
+                </article>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+
+        <section class="service-seo-text">
+            <h2>{{ service.title }} в {{ site_settings.city }}</h2>
+            <p>{{ service.seo_description or service.description }}</p>
+        </section>
     </main>
+    {% include "_site_footer.html" %}
     <script type="application/ld+json">{{ json_ld|safe }}</script>
 </body>
 </html>
