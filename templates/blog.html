@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ site_settings.blog_title }}</title>
+    <meta name="description" content="{{ site_settings.blog_description }}">
+    <link rel="canonical" href="{{ canonical_url }}">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <main class="content-page">
+        <a href="/" class="btn btn--secondary">На главную</a>
+        <h1>Блог</h1>
+        <div class="blog-grid">
+            {% for post in posts %}
+            <article class="blog-card">
+                {% if post.first_image %}<img src="{{ post.first_image }}" alt="{{ post.title }}" loading="lazy">{% endif %}
+                <time>{{ post.created_at }}</time>
+                <h2>{{ post.title }}</h2>
+                <p>{{ post.seo_description or post.text_markdown[:180] }}</p>
+                <a class="btn btn--primary" href="/blog/{{ post.slug }}">Читать далее</a>
+            </article>
+            {% else %}
+            <p>Пока нет опубликованных постов. Их можно добавить в админке или импортировать из Telegram.</p>
+            {% endfor %}
+        </div>
+    </main>
+</body>
+</html>

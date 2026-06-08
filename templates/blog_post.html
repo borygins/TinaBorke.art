@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ post.seo_title or post.title }}</title>
+    <meta name="description" content="{{ post.seo_description }}">
+    <link rel="canonical" href="{{ canonical_url }}">
+    <meta property="og:title" content="{{ post.title }}">
+    <meta property="og:description" content="{{ post.seo_description }}">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <main class="content-page">
+        <a href="/blog" class="btn btn--secondary">К блогу</a>
+        <article class="article-page">
+            <time>{{ post.created_at }}</time>
+            <h1>{{ post.title }}</h1>
+            <div class="article-body">{{ post.text_html|safe }}</div>
+            {% if post.photos %}
+            <div class="article-gallery">
+                {% for photo in post.photos %}
+                <img src="{{ photo.image_path }}" alt="{{ post.title }}" loading="lazy">
+                {% endfor %}
+            </div>
+            {% endif %}
+            <a class="btn btn--primary" href="https://t.me/share/url?url={{ canonical_url }}&text={{ post.title }}" target="_blank" rel="noopener">Поделиться</a>
+        </article>
+    </main>
+    <script type="application/ld+json">{{ json_ld|safe }}</script>
+</body>
+</html>

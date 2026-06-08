@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>О мастере {{ site_settings.master_name }}</title>
+    <meta name="description" content="О мастере {{ site_settings.master_name }}: визаж, грим, выезд и запись в {{ site_settings.city }}.">
+    <link rel="canonical" href="{{ canonical_url }}">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <main class="content-page">
+        <a href="/" class="btn btn--secondary">На главную</a>
+        <h1>О мастере {{ site_settings.master_name }}</h1>
+        <p>{{ site_settings.about_text }}</p>
+        <section class="content-grid">
+            <div><h2>Город</h2><p>{{ site_settings.city }}</p></div>
+            <div><h2>Районы выезда</h2><p>{{ site_settings.area_served }}</p></div>
+            <div><h2>Часы работы</h2><p>{{ site_settings.working_hours }}</p></div>
+            <div><h2>Контакты</h2><p><a href="tel:{{ site_settings.phone|replace(' ', '')|replace('-', '') }}">{{ site_settings.phone }}</a></p><p><a href="{{ site_settings.telegram_url }}">Telegram</a></p></div>
+        </section>
+    </main>
+</body>
+</html>

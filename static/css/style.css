@@ -1796,6 +1796,203 @@ body {
     }
 }
 
+/* Admin, SEO pages and mobile-first improvements */
+html { font-size: 16px; }
+
+a, button, .btn, .nav-link, input, select, textarea { min-height: 44px; }
+
+img { max-width: 100%; height: auto; }
+
+.service-card p { margin: 10px 0; color: var(--color-text-secondary); }
+
+.service-card__link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    margin-top: 10px;
+    color: var(--color-primary);
+    font-weight: var(--font-weight-semibold);
+}
+
+.content-page,
+.admin-shell {
+    width: min(100% - 32px, 1180px);
+    margin: 0 auto;
+    padding: 96px 0 48px;
+}
+
+.content-page h1,
+.admin-shell h1 {
+    font-size: clamp(2rem, 4vw, 3.5rem);
+    line-height: 1.1;
+}
+
+.content-grid,
+.blog-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 20px;
+    margin-top: 28px;
+}
+
+.blog-card,
+.admin-panel,
+.content-grid > div {
+    background: var(--color-surface);
+    border: 1px solid var(--color-card-border);
+    border-radius: var(--radius-base);
+    padding: 20px;
+}
+
+.blog-card img {
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    object-fit: cover;
+    border-radius: var(--radius-base);
+    margin-bottom: 14px;
+}
+
+.article-page { max-width: 780px; }
+
+.article-body {
+    margin: 24px 0;
+    font-size: 1.0625rem;
+    line-height: 1.7;
+}
+
+.article-gallery,
+.admin-gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+}
+
+.article-gallery img,
+.admin-photo img {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    border-radius: var(--radius-base);
+}
+
+.service-price {
+    color: var(--color-primary);
+    font-size: 1.5rem;
+    font-weight: var(--font-weight-bold);
+}
+
+.admin-page { background: var(--color-background); }
+
+.admin-header,
+.admin-tabs {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.admin-tabs {
+    justify-content: flex-start;
+    margin: 24px 0;
+}
+
+.admin-tabs a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 14px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-base);
+}
+
+.admin-panel { margin: 24px 0; }
+
+.admin-form,
+.admin-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+    align-items: start;
+    margin: 16px 0;
+}
+
+.admin-form label,
+.admin-row label {
+    display: grid;
+    gap: 6px;
+    font-weight: var(--font-weight-medium);
+}
+
+.admin-form input,
+.admin-form textarea,
+.admin-row input,
+.admin-row textarea,
+.admin-row select {
+    width: 100%;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-base);
+    padding: 10px 12px;
+    background: var(--color-surface);
+    color: var(--color-text);
+}
+
+.admin-wide,
+.admin-form textarea,
+.admin-row textarea { grid-column: 1 / -1; }
+
+.admin-check {
+    display: flex !important;
+    grid-template-columns: none !important;
+    align-items: center;
+    gap: 8px;
+}
+
+.admin-check input {
+    width: auto;
+    min-height: auto;
+}
+
+@media (max-width: 640px) {
+    .container { width: min(100% - 24px, 100%); }
+    .header__content { min-height: 64px; }
+    .header__logo h2 { font-size: 1rem; }
+    .hero__title { font-size: clamp(2.1rem, 12vw, 3.4rem); }
+    .hero__content { padding: 96px 0 72px; }
+    .services__grid,
+    .reviews__grid,
+    .contacts__grid { grid-template-columns: 1fr; }
+    .booking__form,
+    .footer__form { width: 100%; }
+    .admin-shell,
+    .content-page {
+        width: min(100% - 20px, 100%);
+        padding-top: 80px;
+    }
+    .admin-form,
+    .admin-row { grid-template-columns: 1fr; }
+    .article-gallery {
+        display: flex;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+    }
+    .article-gallery img {
+        flex: 0 0 86%;
+        scroll-snap-align: start;
+    }
+}
+
+@media (min-width: 641px) and (max-width: 1024px) {
+    .container { width: min(100% - 40px, 960px); }
+    .services__grid,
+    .reviews__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .contacts__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (min-width: 1025px) {
+    .header__nav { display: block; }
+}
+
 /* Smooth scroll behavior */
 html {
   scroll-behavior: smooth;

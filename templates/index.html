@@ -16,8 +16,13 @@
     <!-- /Yandex.Metrika counter -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Визаж & Грим от Тины Борке | Профессиональный визажист в СПб</title>
-    <meta name="description" content="Профессиональный визажист-гример в Санкт-Петербурге. Лифтинг макияж, свадебные образы, грим для театра и кино. Скидка 10% на все услуги!">
+    <title>{{ site_settings.home_title }}</title>
+    <meta name="description" content="{{ site_settings.home_description }}">
+    <link rel="canonical" href="{{ canonical_url }}">
+    <meta property="og:title" content="{{ site_settings.home_title }}">
+    <meta property="og:description" content="{{ site_settings.home_description }}">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ canonical_url }}">
 
     <!-- Favicon -->
     <link rel="apple-touch-icon" sizes="180x180" href="/static/images/apple-touch-icon.png">
@@ -36,11 +41,11 @@
                 </div>
                 <nav class="header__nav">
                     <ul class="nav-list">
-                        <li><a href="#about" class="nav-link">Обо мне</a></li>
+                        <li><a href="/about" class="nav-link">Обо мне</a></li>
                         <li><a href="#services" class="nav-link">Услуги</a></li>
                         <li><a href="#events" class="nav-link">Мероприятия</a></li>
                         <li><a href="#" class="nav-link" data-page="portfolio">Портфолио</a></li>
-                        <li><a href="#" class="nav-link" data-page="blog">Мой Блог</a></li>
+                        <li><a href="/blog" class="nav-link">Мой Блог</a></li>
                         <li><a href="#contacts" class="nav-link">Контакты</a></li>
                         <li><a href="#booking" class="nav-link">Записаться</a></li>
                     </ul>
@@ -59,9 +64,9 @@
         <section class="hero" id="hero">
             <div class="container">
                 <div class="hero__content">
-                    <div class="hero__promo">🍂 ОСЕННЯЯ АКЦИЯ • Скидка 10% на все услуги</div>
-                    <h1 class="hero__title">Создаю уникальные образы с душой</h1>
-                    <p class="hero__subtitle">Профессиональный визажист-гример в Санкт-Петербурге</p>
+                    <div class="hero__promo">{{ site_settings.promo_text }}</div>
+                    <h1 class="hero__title">Визажист в {{ site_settings.city }} {{ site_settings.master_name }}</h1>
+                    <p class="hero__subtitle">Профессиональный визажист-гример в {{ site_settings.city }}</p>
                     <a href="#booking" class="btn btn--primary btn--lg hero__cta">Записаться на процедуру</a>
                 </div>
             </div>
@@ -72,11 +77,9 @@
         <section class="about" id="about">
             <div class="container">
                 <div class="about__content">
-                    <h2 class="about__title">Привет! Меня зовут Тина!</h2>
+                    <h2 class="about__title">Привет! Меня зовут {{ site_settings.master_name }}!</h2>
                     <p class="about__description">
-                        Я профессиональный визажист-гример! Работаю легко и с любовью,
-                        использую качественные продукты - профессиональную косметику и инструменты.
-                        Ваше настроение от полученного образа для меня главный приоритет!
+                        {{ site_settings.about_text }}
                     </p>
                     <div class="advantages">
                         <div class="advantage">
@@ -114,106 +117,17 @@
                 <h2 class="services__title">Мои услуги</h2>
 
                 <div class="services__category">
-                    <h3>Основные услуги</h3>
+                    <h3>Популярные услуги</h3>
                     <div class="services__grid">
-                        <div class="service-card">
-                            <h4>Дневной макияж</h4>
-                            <div class="service-card__duration">1 ч</div>
-                            <div class="service-card__price">от 2 500 ₽</div>
+                        {% for service in services %}
+                        <div class="service-card{% if loop.index == 3 %} service-card--featured{% endif %}">
+                            {% if loop.index == 3 %}<div class="service-card__badge">Хит</div>{% endif %}
+                            <h4>{{ service.title }}</h4>
+                            <p>{{ service.description }}</p>
+                            <div class="service-card__price">{{ service.price }}</div>
+                            <a href="/uslugi/{{ service.slug }}" class="service-card__link">Подробнее</a>
                         </div>
-                        <div class="service-card">
-                            <h4>Вечерний макияж</h4>
-                            <div class="service-card__duration">1 ч</div>
-                            <div class="service-card__price">от 3 000 ₽</div>
-                        </div>
-                        <div class="service-card service-card--featured">
-                            <div class="service-card__badge">Хит</div>
-                            <h4>ЛИФТИНГ макияж</h4>
-                            <div class="service-card__duration">1 ч</div>
-                            <div class="service-card__price">от 3 500 ₽</div>
-                        </div>
-                        <div class="service-card">
-                            <h4>Макияж с причёской</h4>
-                            <div class="service-card__duration">2 ч 30 мин</div>
-                            <div class="service-card__price">от 4 500 ₽</div>
-                        </div>
-                        <div class="service-card">
-                            <h4>Причёска, укладка</h4>
-                            <div class="service-card__duration">1 ч 30 мин</div>
-                            <div class="service-card__price">от 3 500 ₽</div>
-                        </div>
-                        <div class="service-card">
-                            <h4>Нюдовый макияж</h4>
-                            <div class="service-card__duration">1 ч</div>
-                            <div class="service-card__price">от 2 500 ₽</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="services__category">
-                    <h3>Специальные услуги</h3>
-                    <div class="services__grid">
-                        <div class="service-card service-card--premium">
-                            <h4>Свадебный образ</h4>
-                            <div class="service-card__duration">2 ч 30 мин</div>
-                            <div class="service-card__price">от 7 000 ₽</div>
-                        </div>
-                        <div class="service-card">
-                            <h4>Репетиция свадебного образа</h4>
-                            <div class="service-card__duration">2 ч 30 мин</div>
-                            <div class="service-card__price">от 3 500 ₽</div>
-                        </div>
-                        <div class="service-card">
-                            <h4>Макияж для фотосессии</h4>
-                            <div class="service-card__duration">2 ч 30 мин</div>
-                            <div class="service-card__price">от 5 500 ₽</div>
-                        </div>
-                        <div class="service-card">
-                            <h4>Детский макияж</h4>
-                            <div class="service-card__duration">1 ч</div>
-                            <div class="service-card__price">2 000 ₽</div>
-                        </div>
-                        <div class="service-card">
-                            <h4>Мужской макияж</h4>
-                            <div class="service-card__duration">45 мин</div>
-                            <div class="service-card__price">от 3 000 ₽</div>
-                        </div>
-                        <div class="service-card">
-                            <h4>Грим театра и кино</h4>
-                            <div class="service-card__duration">1 ч 30 мин</div>
-                            <div class="service-card__price">от 3 500 ₽</div>
-                        </div>
-                        <div class="service-card">
-                            <h4>Спортивный образ для гимнасток</h4>
-                            <div class="service-card__duration">2 ч 30 мин</div>
-                            <div class="service-card__price">от 5 000 ₽</div>
-                        </div>
-                        <div class="service-card">
-                            <h4>Полный образ для выпускниц</h4>
-                            <div class="service-card__duration">2 ч</div>
-                            <div class="service-card__price">4 500 ₽</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="services__category">
-                    <h3>Дополнительно</h3>
-                    <div class="services__grid services__grid--small">
-                        <div class="service-card service-card--addon">
-                            <h4>Выезд</h4>
-                            <div class="service-card__duration">15 мин</div>
-                            <div class="service-card__price">1 000 ₽</div>
-                        </div>
-                        <div class="service-card service-card--addon">
-                            <h4>Ранние сборы до 8:00</h4>
-                            <div class="service-card__duration">30 мин</div>
-                            <div class="service-card__price">Договорная</div>
-                        </div>
-                        <div class="service-card service-card--addon">
-                            <h4>Обучение макияжу</h4>
-                            <div class="service-card__duration">1 ч</div>
-                            <div class="service-card__price">Договорная</div>
-                        </div>
+                        {% endfor %}
                     </div>
                 </div>
             </div>
@@ -260,30 +174,16 @@
                     <a href="https://www.avito.ru/sankt-peterburg/predlozheniya_uslug/vizazhistmakiyazhpricheskiukladkisvadebnyy_stilist_7398583171?context=H4sIAAAAAAAA_wE_AMD_YToyOntzOjEzOiJsb2NhbFByaW9yaXR5IjtiOjA7czoxOiJ4IjtzOjE2OiJDN29xRTZhZ0dpeVBmbGpEIjt9_eXXQz8AAAA" target="_blank" class="btn btn--outline reviews__avito-link">Смотреть все отзывы на Авито</a>
                 </div>
                 <div class="reviews__grid">
+                    {% for review in reviews %}
                     <div class="review-card">
-                        <div class="review-card__avatar">А</div>
+                        <div class="review-card__avatar">{{ review.client_name[:1] }}</div>
                         <div class="review-card__content">
-                            <h4>Анна</h4>
-                            <p>"Тина - настоящий профессионал! Лифтинг-макияж превзошёл все ожидания. Выглядела на 10 лет моложе!"</p>
+                            <h4>{{ review.client_name }}</h4>
+                            <p>"{{ review.text }}"</p>
                             <div class="review-card__rating">⭐⭐⭐⭐⭐</div>
                         </div>
                     </div>
-                    <div class="review-card">
-                        <div class="review-card__avatar">М</div>
-                        <div class="review-card__content">
-                            <h4>Мария</h4>
-                            <p>"Свадебный образ был просто волшебным! Тина учла все мои пожелания и создала идеальный look"</p>
-                            <div class="review-card__rating">⭐⭐⭐⭐⭐</div>
-                        </div>
-                    </div>
-                    <div class="review-card">
-                        <div class="review-card__avatar">Е</div>
-                        <div class="review-card__content">
-                            <h4>Елена</h4>
-                            <p>"Отличный мастер! Стерильность на высоте, результат потрясающий. Обязательно вернусь ещё!"</p>
-                            <div class="review-card__rating">⭐⭐⭐⭐⭐</div>
-                        </div>
-                    </div>
+                    {% endfor %}
                 </div>
             </div>
         </section>
@@ -297,28 +197,28 @@
                         <div class="contact-block__icon">📍</div>
                         <div class="contact-block__content">
                             <h4>Адрес студии</h4>
-                            <p>Санкт-Петербург, ул. Всеволода Вишневского, дом 11</p>
+                            <p>{{ site_settings.city }}</p>
                         </div>
                     </div>
                     <div class="contact-block">
                         <div class="contact-block__icon">📞</div>
                         <div class="contact-block__content">
                             <h4>Телефон</h4>
-                            <p><a href="tel:+79110905520">+7-911-090-55-20</a></p>
+                            <p><a href="tel:{{ site_settings.phone|replace(' ', '')|replace('-', '') }}">{{ site_settings.phone }}</a></p>
                         </div>
                     </div>
                     <div class="contact-block">
                         <div class="contact-block__icon">💬</div>
                         <div class="contact-block__content">
                             <h4>Telegram</h4>
-                            <p><a href="https://t.me/TinaBorkeMakeUp" target="_blank">@TinaBorkeMakeUp</a></p>
+                            <p><a href="{{ site_settings.telegram_url }}" target="_blank" rel="noopener">Telegram</a></p>
                         </div>
                     </div>
                     <div class="contact-block contact-block--centered">
                         <div class="contact-block__icon">🚗</div>
                         <div class="contact-block__content">
                             <h4>Выезд</h4>
-                            <p>Санкт-Петербург и Ленинградская область</p>
+                            <p>{{ site_settings.area_served }}</p>
                         </div>
                     </div>
                 </div>
@@ -353,14 +253,9 @@
                             <label class="form-label" for="service">Тип услуги</label>
                             <select class="form-control" id="service" name="service">
                                 <option value="">Выберите услугу</option>
-                                <option value="day">Дневной макияж</option>
-                                <option value="evening">Вечерний макияж</option>
-                                <option value="lifting">ЛИФТИНГ макияж</option>
-                                <option value="wedding">Свадебный образ</option>
-                                <option value="photo">Макияж для фотосессии</option>
-                                <option value="child">Детский макияж</option>
-                                <option value="male">Мужской макияж</option>
-                                <option value="theater">Грим театра и кино</option>
+                                {% for service in services %}
+                                <option value="{{ service.title }}">{{ service.title }}</option>
+                                {% endfor %}
                                 <option value="other">Другое</option>
                             </select>
                         </div>
@@ -388,18 +283,18 @@
                     <h3>Контактная информация</h3>
                     <div class="contact-item">
                         <strong>📍 Адрес студии:</strong>
-                        <span>Санкт-Петербург, ул. Всеволода Вишневского, дом 11</span>
+                        <span>{{ site_settings.city }}</span>
                     </div>
                     <div class="contact-item">
                         <strong>📞 Телефон:</strong>
-                        <a href="tel:+79110905520">+7-911-090-55-20</a>
+                        <a href="tel:{{ site_settings.phone|replace(' ', '')|replace('-', '') }}">{{ site_settings.phone }}</a>
                     </div>
                     <div class="contact-item">
                         <strong>💬 Telegram:</strong>
-                        <a href="https://t.me/TinaBorkeMakeUp" target="_blank">@TinaBorkeMakeUp</a>
+                        <a href="{{ site_settings.telegram_url }}" target="_blank" rel="noopener">Telegram</a>
                     </div>
                     <div class="contact-item">
-                        <strong>🚗 Выезд:</strong> Санкт-Петербург и Ленинградская область
+                        <strong>🚗 Выезд:</strong> {{ site_settings.area_served }}
                     </div>
                 </div>
 
@@ -415,7 +310,7 @@
             </div>
 
             <div class="footer__bottom">
-                <p>&copy; 2024 Визаж & Грим от Тины Борке. Все права защищены.</p>
+                <p>&copy; 2026 Визаж & Грим от {{ site_settings.master_name }}. Все права защищены.</p>
             </div>
         </div>
     </footer>
@@ -472,6 +367,9 @@
         </div>
     </div>
 
+    {% if json_ld %}
+    <script type="application/ld+json">{{ json_ld|safe }}</script>
+    {% endif %}
     <script src="/static/js/app.js"></script>
 </body>
 </html>

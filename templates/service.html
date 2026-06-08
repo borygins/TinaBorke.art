@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ service.seo_title or service.title }}</title>
+    <meta name="description" content="{{ service.seo_description }}">
+    <link rel="canonical" href="{{ canonical_url }}">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <main class="content-page">
+        <a href="/#services" class="btn btn--secondary">К услугам</a>
+        <article class="article-page">
+            <h1>{{ service.title }}</h1>
+            <p class="service-price">{{ service.price }}</p>
+            <p>{{ service.description }}</p>
+            <a class="btn btn--primary" href="/#booking">Записаться</a>
+        </article>
+    </main>
+    <script type="application/ld+json">{{ json_ld|safe }}</script>
+</body>
+</html>
