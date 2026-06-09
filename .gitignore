@@ -44,3 +44,7 @@ logs/
 .DS_Store
 Thumbs.db
 uploads/
+
+# Uploaded media
+static/uploads/
+static/blog_photos/
