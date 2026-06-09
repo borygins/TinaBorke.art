@@ -56,6 +56,8 @@
             <form method="post" action="/admin/settings" class="admin-form">
                 <input type="hidden" name="tab" value="settings">
                 <label>Имя мастера<input name="master_name" value="{{ site_settings.get('master_name', '') }}"></label>
+                <label>Имя после «от»<input name="master_name_genitive" value="{{ site_settings.get('master_name_genitive', 'Тины Борке') }}" placeholder="Тины Борке"></label>
+                <label>Имя после «о мастере»<input name="master_name_prepositional" value="{{ site_settings.get('master_name_prepositional', 'Тине Борке') }}" placeholder="Тине Борке"></label>
                 <label>Город / адрес<input name="city" value="{{ site_settings.get('city', '') }}"></label>
                 <label>Телефон<input name="phone" value="{{ site_settings.get('phone', '') }}"></label>
                 <label>Email<input name="contact_email" value="{{ site_settings.get('contact_email', '') }}"></label>

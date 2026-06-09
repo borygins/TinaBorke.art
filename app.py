@@ -342,6 +342,8 @@ class Database:
     async def seed_defaults(self, db):
         default_settings = {
             "master_name": "Тина Борке",
+            "master_name_genitive": "Тины Борке",
+            "master_name_prepositional": "Тине Борке",
             "city": "Санкт-Петербург",
             "phone": "+7 999 000-00-00",
             "contact_email": "",
@@ -1432,7 +1434,8 @@ async def admin_dashboard(request: Request, tab: str = "settings", _: str = Depe
 async def admin_save_settings(request: Request, _: str = Depends(require_admin)):
     form = dict(await request.form())
     allowed = {
-        "master_name", "city", "phone", "telegram_url", "social_avito_url", "social_vk_url", "social_tiktok_url",
+        "master_name", "master_name_genitive", "master_name_prepositional",
+        "city", "phone", "telegram_url", "social_avito_url", "social_vk_url", "social_tiktok_url",
         "working_hours", "area_served", "contact_email", "about_text", "promo_text",
         "homepage_intro_line_1", "homepage_intro_line_2",
         "home_title", "home_description", "blog_title", "blog_description",

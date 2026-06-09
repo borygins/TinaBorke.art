@@ -1,7 +1,7 @@
 <footer class="inner-footer">
     <div class="inner-footer__content">
         <div>
-            <h2>Визаж & Грим от {{ site_settings.master_name }}</h2>
+            <h2>Визаж & Грим от {{ site_settings.get('master_name_genitive', 'Тины Борке') }}</h2>
             <p>{{ site_settings.city }} · {{ site_settings.working_hours }}</p>
         </div>
         <div class="inner-footer__contacts">

@@ -2,7 +2,7 @@
     <div class="container">
         <div class="header__content">
             <div class="header__logo">
-                <a href="/" class="site-logo">Визаж & Грим от {{ site_settings.master_name }}</a>
+                <a href="/" class="site-logo">Визаж & Грим от {{ site_settings.get('master_name_genitive', 'Тины Борке') }}</a>
             </div>
             <nav class="header__nav">
                 <ul class="nav-list">

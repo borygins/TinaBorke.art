@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>О мастере {{ site_settings.master_name }}</title>
-    <meta name="description" content="О мастере {{ site_settings.master_name }}: визаж, грим, выезд и запись в {{ site_settings.city }}.">
+    <title>О мастере {{ site_settings.get('master_name_prepositional', 'Тине Борке') }}</title>
+    <meta name="description" content="О мастере {{ site_settings.get('master_name_prepositional', 'Тине Борке') }}: визаж, грим, выезд и запись в {{ site_settings.city }}.">
     <link rel="canonical" href="{{ canonical_url }}">
     {% include "_favicon.html" %}
     <link rel="stylesheet" href="/static/css/style.css?v=8">
@@ -14,7 +14,7 @@
     {% include "_site_header.html" %}
     <main class="content-page inner-content">
         <section class="inner-hero">
-            <h1>О мастере {{ site_settings.master_name }}</h1>
+            <h1>О мастере {{ site_settings.get('master_name_prepositional', 'Тине Борке') }}</h1>
             <p>{{ site_settings.about_text }}</p>
         </section>
         <section class="content-grid">
