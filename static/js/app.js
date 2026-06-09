@@ -103,6 +103,15 @@ function initNavigation() {
     link.addEventListener('click', (e) => {
         const href = link.getAttribute('href') || '';
 
+        if (href === '/portfolio' || href === '/blog' || href.startsWith('/portfolio/') || href.startsWith('/blog/')) {
+            if (navList.classList.contains('active')) {
+                navList.classList.remove('active');
+                burger.classList.remove('active');
+                document.body.style.overflow = 'auto';
+            }
+            return;
+        }
+
         // Check if it's a modal link
         if (link.hasAttribute('data-page')) {
             e.preventDefault();
