@@ -10,14 +10,14 @@
     <meta property="og:description" content="{{ post.seo_description }}">
     {% include "_favicon.html" %}
     <link rel="stylesheet" href="/static/css/style.css?v=5">
-    <link rel="stylesheet" href="/static/css/inner-pages.css?v=2">
+    <link rel="stylesheet" href="/static/css/inner-pages.css?v=3">
 </head>
 <body class="inner-page">
     {% include "_site_header.html" %}
     <main class="content-page inner-content">
         <nav class="inner-back"><a href="/blog">К блогу</a></nav>
         <article class="article-page">
-            <time>{{ post.created_at }}</time>
+            <time class="article-date" datetime="{{ post.created_at }}">{{ post.created_at|ru_datetime }}</time>
             <div class="article-body">{{ post.text_html|safe }}</div>
             {% if post.photos %}
             <div class="article-gallery">

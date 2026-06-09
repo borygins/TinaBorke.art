@@ -189,6 +189,12 @@
     box-shadow: 0 16px 48px rgba(0, 0, 0, 0.16);
 }
 
+.blog-card {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
 .service-info-card h2,
 .service-reviews h2,
 .service-seo-text h2,
@@ -211,6 +217,23 @@
 .portfolio-empty,
 .blog-empty {
     color: var(--inner-muted);
+}
+
+.blog-card .btn {
+    align-self: flex-start;
+}
+
+.blog-card__date {
+    align-self: flex-end;
+    max-width: 72%;
+    margin-top: 2px;
+    color: var(--inner-gold-light);
+    font-size: 0.95rem;
+    font-style: italic;
+    font-weight: 500;
+    line-height: 1.35;
+    text-align: right;
+    letter-spacing: 0;
 }
 
 .service-info-text {
@@ -267,6 +290,16 @@
 .article-page {
     max-width: 860px;
     margin: 0 auto;
+}
+
+.article-date {
+    display: block;
+    margin: 0 0 22px;
+    color: var(--inner-gold-light);
+    font-size: 1rem;
+    font-style: italic;
+    font-weight: 500;
+    letter-spacing: 0;
 }
 
 .article-gallery {

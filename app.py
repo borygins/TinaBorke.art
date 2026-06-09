@@ -136,6 +136,21 @@ def plain_excerpt(value: str, limit: int = 160) -> str:
     text = re.sub(r"\s+", " ", text).strip()
     return text[:limit].rstrip()
 
+def format_ru_datetime(value: str) -> str:
+    months = {
+        1: "января", 2: "февраля", 3: "марта", 4: "апреля",
+        5: "мая", 6: "июня", 7: "июля", 8: "августа",
+        9: "сентября", 10: "октября", 11: "ноября", 12: "декабря",
+    }
+    text = (value or "").strip()
+    for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%Y-%m-%d"):
+        try:
+            parsed = datetime.strptime(text, fmt)
+            return f"{parsed.day} {months[parsed.month]} {parsed.year} год {parsed:%H:%M}"
+        except ValueError:
+            continue
+    return text
+
 def get_social_links(site_settings: dict) -> list[dict]:
     links = [
         ("Telegram", site_settings.get("telegram_url", "")),
@@ -1131,6 +1146,7 @@ else:
 # ========== ШАБЛОНЫ JINJA2 ==========
 if Path("templates").exists():
     templates = Jinja2Templates(directory="templates")
+    templates.env.filters["ru_datetime"] = format_ru_datetime
     logger.info("Шаблоны Jinja2 инициализированы")
 else:
     logger.warning("[WARN] Директория templates не найдена")
