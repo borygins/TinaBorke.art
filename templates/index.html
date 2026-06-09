@@ -234,7 +234,7 @@
                         <div class="contact-block__icon">💬</div>
                         <div class="contact-block__content">
                             <h4>Telegram</h4>
-                            <p><a href="{{ site_settings.telegram_url }}" target="_blank" rel="noopener">Telegram</a></p>
+                            <p><a class="contact-link" href="{{ site_settings.telegram_url }}" target="_blank" rel="noopener">Перейти</a></p>
                         </div>
                     </div>
                     {% endif %}
@@ -244,7 +244,7 @@
                         <div class="contact-block__icon">↗</div>
                         <div class="contact-block__content">
                             <h4>{{ social.label }}</h4>
-                            <p><a href="{{ social.url }}" target="_blank" rel="noopener">{{ social.label }}</a></p>
+                            <p><a class="contact-link" href="{{ social.url }}" target="_blank" rel="noopener">Перейти</a></p>
                         </div>
                     </div>
                     {% endif %}
@@ -336,14 +336,14 @@
                     {% if site_settings.telegram_url %}
                     <div class="contact-item">
                         <strong>💬 Telegram:</strong>
-                        <a href="{{ site_settings.telegram_url }}" target="_blank" rel="noopener">Telegram</a>
+                        <a class="contact-link" href="{{ site_settings.telegram_url }}" target="_blank" rel="noopener">Перейти</a>
                     </div>
                     {% endif %}
                     {% for social in social_links %}
                     {% if social.label != 'Telegram' %}
                     <div class="contact-item">
                         <strong>{{ social.label }}:</strong>
-                        <a href="{{ social.url }}" target="_blank" rel="noopener">{{ social.label }}</a>
+                        <a class="contact-link" href="{{ social.url }}" target="_blank" rel="noopener">Перейти</a>
                     </div>
                     {% endif %}
                     {% endfor %}

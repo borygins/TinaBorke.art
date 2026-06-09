@@ -792,16 +792,29 @@ body {
   margin: 0;
 }
 
-.site-logo {
-    color: var(--gold, #d4af37);
+.header .site-logo,
+.header .site-logo:link,
+.header .site-logo:visited {
+    color: var(--gold, #d4af37) !important;
     font-size: 1.25rem;
     font-weight: 800;
     text-decoration: none;
     transition: color 160ms ease;
 }
 
-.site-logo:hover {
-    color: var(--cream, #fff8ec);
+.header .site-logo:visited {
+    text-decoration: none;
+}
+
+.header .site-logo:hover {
+    color: var(--gold-light, #ffd700) !important;
+    text-decoration: none;
+}
+
+.contact-link {
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 3px;
 }
 
 .header__nav {

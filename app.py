@@ -261,6 +261,7 @@ class Database:
                         first_image TEXT,
                         created_at TEXT NOT NULL,
                         is_visible INTEGER NOT NULL DEFAULT 1,
+                        is_deleted INTEGER NOT NULL DEFAULT 0,
                         seo_title TEXT NOT NULL DEFAULT '',
                         seo_description TEXT NOT NULL DEFAULT ''
                     );
@@ -279,7 +280,8 @@ class Database:
                         slug TEXT NOT NULL UNIQUE,
                         description TEXT NOT NULL DEFAULT '',
                         sort_order INTEGER NOT NULL DEFAULT 0,
-                        is_active INTEGER NOT NULL DEFAULT 1
+                        is_active INTEGER NOT NULL DEFAULT 1,
+                        is_deleted INTEGER NOT NULL DEFAULT 0
                     );
                     CREATE TABLE IF NOT EXISTS portfolio_photos (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -319,6 +321,8 @@ class Database:
         await ensure_column("reviews", "service_id", "INTEGER")
         await ensure_column("blog_photos", "alt_text", "TEXT NOT NULL DEFAULT ''")
         await ensure_column("blog_photos", "created_at", "TEXT NOT NULL DEFAULT ''")
+        await ensure_column("blog_posts", "is_deleted", "INTEGER NOT NULL DEFAULT 0")
+        await ensure_column("portfolio_categories", "is_deleted", "INTEGER NOT NULL DEFAULT 0")
 
     async def seed_defaults(self, db):
         default_settings = {
@@ -615,8 +619,13 @@ class Database:
     async def delete_gallery_item(self, item_id: int):
         await self.execute("DELETE FROM gallery WHERE id = ?", (item_id,))
 
-    async def get_portfolio_categories(self, active_only: bool = True) -> list[dict]:
-        where = "WHERE portfolio_categories.is_active = 1" if active_only else ""
+    async def get_portfolio_categories(self, active_only: bool = True, include_deleted: bool = False) -> list[dict]:
+        clauses = []
+        if active_only:
+            clauses.append("portfolio_categories.is_active = 1")
+        if not include_deleted:
+            clauses.append("portfolio_categories.is_deleted = 0")
+        where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
         return await self.fetch_all(f"""
             SELECT portfolio_categories.*,
                    COUNT(CASE WHEN portfolio_photos.is_active = 1 THEN portfolio_photos.id END) AS photo_count
@@ -628,7 +637,10 @@ class Database:
         """)
 
     async def get_portfolio_category(self, slug: str) -> Optional[dict]:
-        category = await self.fetch_one("SELECT * FROM portfolio_categories WHERE slug = ? AND is_active = 1", (slug,))
+        category = await self.fetch_one(
+            "SELECT * FROM portfolio_categories WHERE slug = ? AND is_active = 1 AND is_deleted = 0",
+            (slug,),
+        )
         if category:
             category["photos"] = await self.fetch_all("""
                 SELECT portfolio_photos.*, services.title AS service_title, services.slug AS service_slug
@@ -661,6 +673,18 @@ class Database:
                 INSERT INTO portfolio_categories (title, slug, description, sort_order, is_active)
                 VALUES (?, ?, ?, ?, ?)
             """, values)
+
+    async def delete_portfolio_category(self, category_id: int):
+        await self.execute("""
+            UPDATE portfolio_categories
+            SET is_deleted = 1, is_active = 0
+            WHERE id = ?
+        """, (category_id,))
+        await self.execute("""
+            UPDATE portfolio_photos
+            SET is_active = 0, category_id = NULL
+            WHERE category_id = ?
+        """, (category_id,))
 
     async def get_portfolio_photos(self, active_only: bool = False, limit: Optional[int] = None) -> list[dict]:
         where = "WHERE portfolio_photos.is_active = 1" if active_only else ""
@@ -706,8 +730,13 @@ class Database:
     async def delete_portfolio_photo(self, photo_id: int):
         await self.execute("DELETE FROM portfolio_photos WHERE id = ?", (photo_id,))
 
-    async def get_blog_posts(self, visible_only: bool = True) -> list[dict]:
-        where = "WHERE blog_posts.is_visible = 1" if visible_only else ""
+    async def get_blog_posts(self, visible_only: bool = True, include_deleted: bool = False) -> list[dict]:
+        clauses = []
+        if visible_only:
+            clauses.append("blog_posts.is_visible = 1")
+        if not include_deleted:
+            clauses.append("blog_posts.is_deleted = 0")
+        where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
         posts = await self.fetch_all(f"""
             SELECT blog_posts.*,
                    COALESCE(blog_posts.first_image, (
@@ -721,25 +750,44 @@ class Database:
             {where}
             ORDER BY blog_posts.created_at DESC, blog_posts.id DESC
         """)
+        for post in posts:
+            post["seo_title"] = plain_excerpt(post.get("text_markdown", ""), 60)
+            post["seo_description"] = plain_excerpt(post.get("text_markdown", ""))
         return posts
 
     async def get_blog_post(self, slug: str) -> Optional[dict]:
-        post = await self.fetch_one("SELECT * FROM blog_posts WHERE slug = ? AND is_visible = 1", (slug,))
+        post = await self.fetch_one(
+            "SELECT * FROM blog_posts WHERE slug = ? AND is_visible = 1 AND is_deleted = 0",
+            (slug,),
+        )
         if post:
+            post["seo_title"] = plain_excerpt(post.get("text_markdown", ""), 60)
+            post["seo_description"] = plain_excerpt(post.get("text_markdown", ""))
             post["photos"] = await self.fetch_all("SELECT * FROM blog_photos WHERE post_id = ? ORDER BY sort_order, id", (post["id"],))
         return post
 
     async def get_blog_post_by_id(self, post_id: int) -> Optional[dict]:
-        post = await self.fetch_one("SELECT * FROM blog_posts WHERE id = ?", (post_id,))
+        post = await self.fetch_one("SELECT * FROM blog_posts WHERE id = ? AND is_deleted = 0", (post_id,))
         if post:
+            post["seo_title"] = plain_excerpt(post.get("text_markdown", ""), 60)
+            post["seo_description"] = plain_excerpt(post.get("text_markdown", ""))
             post["photos"] = await self.fetch_all("SELECT * FROM blog_photos WHERE post_id = ? ORDER BY sort_order, id", (post["id"],))
         return post
 
     async def save_blog_post(self, form: dict):
         post_id = form.get("id")
-        title = (form.get("title") or "").strip()
-        slug = slugify(form.get("slug") or title)
         text_markdown = form.get("text_markdown") or ""
+        title = (form.get("title") or plain_excerpt(text_markdown, 70) or "Пост блога").strip()
+        slug = slugify(form.get("slug") or title)
+        if post_id and not form.get("slug"):
+            existing = await self.fetch_one("SELECT slug FROM blog_posts WHERE id = ?", (post_id,))
+            if existing:
+                slug = existing["slug"]
+        first_image = form.get("first_image") or None
+        if post_id and not first_image:
+            existing_image = await self.fetch_one("SELECT first_image FROM blog_posts WHERE id = ?", (post_id,))
+            if existing_image:
+                first_image = existing_image["first_image"]
         text_html = "<br>".join(html.escape(line) for line in text_markdown.splitlines())
         values = (
             form.get("telegram_message_id") or None,
@@ -747,11 +795,11 @@ class Database:
             slug,
             text_html,
             text_markdown,
-            form.get("first_image") or None,
+            first_image,
             form.get("created_at") or get_moscow_time().strftime("%Y-%m-%d %H:%M:%S"),
             1 if form.get("is_visible") == "on" else 0,
-            form.get("seo_title") or title[:60],
-            form.get("seo_description") or plain_excerpt(text_markdown),
+            plain_excerpt(text_markdown, 60) or title[:60],
+            plain_excerpt(text_markdown),
         )
         if post_id:
             await self.execute("""
@@ -769,7 +817,10 @@ class Database:
             """, values)
 
     async def toggle_blog_post(self, post_id: int):
-        await self.execute("UPDATE blog_posts SET is_visible = CASE is_visible WHEN 1 THEN 0 ELSE 1 END WHERE id = ?", (post_id,))
+        await self.execute("UPDATE blog_posts SET is_visible = CASE is_visible WHEN 1 THEN 0 ELSE 1 END WHERE id = ? AND is_deleted = 0", (post_id,))
+
+    async def delete_blog_post(self, post_id: int):
+        await self.execute("UPDATE blog_posts SET is_deleted = 1, is_visible = 0 WHERE id = ?", (post_id,))
 
     async def add_blog_photo(self, post_id: int, image_path: str, alt_text: str = "", sort_order: int = 0):
         await self.execute("""
@@ -791,6 +842,35 @@ class Database:
             "telegram_import_last_count": str(count),
             "telegram_import_last_error": error[:500],
         })
+
+    async def save_telegram_photo(self, client: httpx.AsyncClient, file_id: str, message_key: str, sort_order: int) -> Optional[str]:
+        file_response = await client.get(
+            f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/getFile",
+            params={"file_id": file_id},
+        )
+        if file_response.status_code != 200:
+            logger.warning("Telegram photo getFile failed without exposing token: %s", file_response.status_code)
+            return None
+        file_payload = file_response.json()
+        if not file_payload.get("ok"):
+            logger.warning("Telegram photo getFile API error: %s", file_payload.get("description", "unknown error"))
+            return None
+        file_path = file_payload.get("result", {}).get("file_path", "")
+        if not file_path:
+            return None
+        suffix = Path(file_path).suffix.lower() or ".jpg"
+        if suffix not in ALLOWED_IMAGE_EXTENSIONS:
+            suffix = ".jpg"
+        photo_response = await client.get(f"https://api.telegram.org/file/bot{settings.TELEGRAM_BOT_TOKEN}/{file_path}")
+        if photo_response.status_code != 200 or len(photo_response.content) > 8 * 1024 * 1024:
+            logger.warning("Telegram photo download skipped: status=%s", photo_response.status_code)
+            return None
+        target_dir = Path("static/blog_photos")
+        target_dir.mkdir(parents=True, exist_ok=True)
+        safe_key = re.sub(r"[^a-zA-Z0-9_-]+", "-", message_key).strip("-") or uuid4().hex[:8]
+        target = target_dir / f"telegram_{safe_key}_{sort_order}_{uuid4().hex[:8]}{suffix}"
+        target.write_bytes(photo_response.content)
+        return "/" + str(target).replace("\\", "/")
 
     async def import_telegram_updates(self) -> int:
         if settings.TELEGRAM_IMPORT_MODE != "bot_api":
@@ -825,6 +905,7 @@ class Database:
                     logger.warning(message)
                     await self.set_telegram_import_status(0, message)
                     return 0
+                grouped_posts = {}
                 for item in payload.get("result", []):
                     post = item.get("channel_post") or {}
                     channel_id = str(post.get("chat", {}).get("id", ""))
@@ -832,20 +913,48 @@ class Database:
                         continue
                     message_id = str(post.get("message_id", ""))
                     text = post.get("text") or post.get("caption") or ""
-                    if not message_id or not text:
+                    if not message_id:
+                        continue
+                    group_id = post.get("media_group_id")
+                    import_key = f"media-group-{group_id}" if group_id else message_id
+                    entry = grouped_posts.setdefault(import_key, {
+                        "message_id": import_key,
+                        "slug_id": str(group_id or message_id),
+                        "text": "",
+                        "date": post.get("date", datetime.now().timestamp()),
+                        "photos": [],
+                    })
+                    if text and not entry["text"]:
+                        entry["text"] = text
+                    if post.get("date"):
+                        entry["date"] = min(entry["date"], post["date"])
+                    if post.get("photo"):
+                        entry["photos"].append(post["photo"][-1]["file_id"])
+
+                for post_data in grouped_posts.values():
+                    message_id = post_data["message_id"]
+                    text = post_data["text"]
+                    if not text and not post_data["photos"]:
                         continue
                     exists = await self.fetch_one("SELECT id FROM blog_posts WHERE telegram_message_id = ?", (message_id,))
                     if exists:
                         continue
-                    title = plain_excerpt(text, 60) or f"Пост Telegram {message_id}"
-                    await self.save_blog_post({
+                    post_id = await self.save_blog_post({
                         "telegram_message_id": message_id,
-                        "title": title,
-                        "slug": f"telegram-{message_id}",
+                        "slug": f"telegram-{post_data['slug_id']}",
                         "text_markdown": text,
-                        "created_at": datetime.fromtimestamp(post.get("date", datetime.now().timestamp())).strftime("%Y-%m-%d %H:%M:%S"),
+                        "created_at": datetime.fromtimestamp(post_data["date"]).strftime("%Y-%m-%d %H:%M:%S"),
                         "is_visible": "on",
                     })
+                    first_image = None
+                    for index, file_id in enumerate(post_data["photos"], start=1):
+                        image_path = await self.save_telegram_photo(client, file_id, message_id, index)
+                        if image_path:
+                            if first_image is None:
+                                first_image = image_path
+                            await self.add_blog_photo(post_id, image_path, "Фото из Telegram", index)
+                    if first_image:
+                        await self.execute("UPDATE blog_posts SET first_image = ? WHERE id = ?", (first_image, post_id))
                     imported += 1
             await self.set_telegram_import_status(imported, "" if imported else "Новых channel_post в getUpdates не найдено. Bot API не отдаёт старую историю канала.")
         except Exception as exc:
@@ -1126,7 +1235,7 @@ async def blog_post(request: Request, slug: str):
     article_ld = {
         "@context": "https://schema.org",
         "@type": "Article",
-        "headline": post["title"],
+        "headline": post.get("seo_title") or plain_excerpt(post.get("text_markdown", ""), 60),
         "datePublished": post["created_at"],
         "description": post.get("seo_description") or plain_excerpt(post.get("text_markdown", "")),
         "author": {"@type": "Person", "name": site_settings.get("master_name", "Тина Борке")},
@@ -1361,6 +1470,11 @@ async def admin_save_portfolio_category(request: Request, _: str = Depends(requi
     await db.save_portfolio_category(dict(await request.form()))
     return RedirectResponse("/admin?tab=portfolio", status_code=303)
 
+@app.post("/admin/portfolio/categories/{category_id}/delete")
+async def admin_delete_portfolio_category(category_id: int, _: str = Depends(require_admin)):
+    await db.delete_portfolio_category(category_id)
+    return RedirectResponse("/admin?tab=portfolio", status_code=303)
+
 @app.post("/admin/portfolio/upload")
 async def admin_upload_portfolio(
     image: UploadFile = File(...),
@@ -1384,7 +1498,18 @@ async def admin_delete_portfolio_photo(photo_id: int, _: str = Depends(require_a
 
 @app.post("/admin/blog/save")
 async def admin_save_blog(request: Request, _: str = Depends(require_admin)):
-    await db.save_blog_post(dict(await request.form()))
+    form_data = await request.form()
+    post_id = await db.save_blog_post(dict(form_data))
+    for index, image in enumerate(form_data.getlist("images")):
+        if not getattr(image, "filename", ""):
+            continue
+        image_path = await save_upload(image, "static/blog_photos")
+        await db.add_blog_photo(
+            post_id,
+            image_path,
+            "Фото к посту",
+            index + 1,
+        )
     return RedirectResponse("/admin?tab=blog", status_code=303)
 
 @app.post("/admin/blog/{post_id}/photos/upload")
@@ -1418,6 +1543,11 @@ async def admin_delete_blog_photo(photo_id: int, _: str = Depends(require_admin)
 @app.post("/admin/blog/{post_id}/toggle")
 async def admin_toggle_blog(post_id: int, _: str = Depends(require_admin)):
     await db.toggle_blog_post(post_id)
+    return RedirectResponse("/admin?tab=blog", status_code=303)
+
+@app.post("/admin/blog/{post_id}/delete")
+async def admin_delete_blog(post_id: int, _: str = Depends(require_admin)):
+    await db.delete_blog_post(post_id)
     return RedirectResponse("/admin?tab=blog", status_code=303)
 
 @app.post("/admin/blog/import")

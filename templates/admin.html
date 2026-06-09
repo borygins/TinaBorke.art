@@ -198,6 +198,9 @@
                         <label class="admin-check"><input type="checkbox" name="is_active" {% if category.is_active %}checked{% endif %}> Видим</label>
                         <button class="btn btn--primary" type="submit">Сохранить раздел</button>
                     </form>
+                    <form method="post" action="/admin/portfolio/categories/{{ category.id }}/delete" class="admin-delete-form" onsubmit="return confirm('Удалить раздел? Фото не будут удалены, но станут невидимыми и их можно будет перенести в другой раздел.');">
+                        <button class="btn btn--secondary" type="submit">Удалить раздел</button>
+                    </form>
                 </details>
                 {% endfor %}
             </div>
@@ -349,14 +352,12 @@
 
         <section class="admin-panel {% if active_tab != 'blog' %}is-hidden{% endif %}" id="blog">
             <h2>Блог</h2>
-            <form method="post" action="/admin/blog/save" class="admin-form">
-                <label class="admin-wide">Заголовок поста<textarea name="title" rows="2" required></textarea></label>
+            <form method="post" action="/admin/blog/save" enctype="multipart/form-data" class="admin-form">
                 <label>Адрес страницы<input name="slug" placeholder="Можно оставить пустым"></label>
                 <label>Номер поста в Telegram<input name="telegram_message_id"></label>
                 <label>Дата публикации<input name="created_at" placeholder="2026-06-08 12:00:00"></label>
-                <label class="admin-wide">Текст поста<textarea name="text_markdown" rows="5"></textarea></label>
-                <label class="admin-wide">Заголовок для поиска<textarea name="seo_title" rows="2"></textarea></label>
-                <label class="admin-wide">Описание для поиска<textarea name="seo_description" rows="3"></textarea></label>
+                <label>Фото к посту<input type="file" name="images" accept=".jpg,.jpeg,.png,.webp" multiple></label>
+                <label class="admin-wide">Текст поста<textarea name="text_markdown" rows="7" required></textarea></label>
                 <label class="admin-check"><input type="checkbox" name="is_visible" checked> Показывать</label>
                 <button class="btn btn--primary" type="submit">Добавить пост</button>
             </form>
@@ -364,7 +365,7 @@
                 {% for post in posts %}
                 <details class="admin-compact-item">
                     <summary>
-                        <span class="admin-row-title">{{ post.title }}</span>
+                        <span class="admin-row-title">{{ post.text_markdown[:90] or 'Без текста' }}{% if post.text_markdown|length > 90 %}...{% endif %}</span>
                         <span>{{ post.created_at }}</span>
                         <span>{{ post.photo_count }} фото</span>
                         <span>{% if post.is_visible %}Видим{% else %}Скрыт{% endif %}</span>
@@ -374,10 +375,7 @@
                         <label>Адрес страницы<input name="slug" value="{{ post.slug }}"></label>
                         <label>Номер в Telegram<input name="telegram_message_id" value="{{ post.telegram_message_id or '' }}"></label>
                         <label>Дата<input name="created_at" value="{{ post.created_at }}"></label>
-                        {{ text_editor('Заголовок', 'title', post.title, 3) }}
                         {{ text_editor('Текст', 'text_markdown', post.text_markdown, 6) }}
-                        {{ text_editor('Заголовок для поиска', 'seo_title', post.seo_title, 3) }}
-                        {{ text_editor('Описание для поиска', 'seo_description', post.seo_description, 4) }}
                         <label class="admin-check"><input type="checkbox" name="is_visible" {% if post.is_visible %}checked{% endif %}> Видим</label>
                         <button class="btn btn--primary" type="submit">Сохранить пост</button>
                     </form>
@@ -405,6 +403,9 @@
                     {% endif %}
                     <form method="post" action="/admin/blog/{{ post.id }}/toggle" class="admin-delete-form">
                         <button class="btn btn--secondary" type="submit">Скрыть/показать</button>
+                    </form>
+                    <form method="post" action="/admin/blog/{{ post.id }}/delete" class="admin-delete-form" onsubmit="return confirm('Удалить пост? Он исчезнет с сайта, но данные можно будет восстановить из базы.');">
+                        <button class="btn btn--secondary" type="submit">Удалить пост</button>
                     </form>
                 </details>
                 {% endfor %}
