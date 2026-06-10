@@ -136,6 +136,14 @@ def plain_excerpt(value: str, limit: int = 160) -> str:
     text = re.sub(r"\s+", " ", text).strip()
     return text[:limit].rstrip()
 
+def form_getlist(form, key: str) -> list:
+    if hasattr(form, "getlist"):
+        return form.getlist(key)
+    value = form.get(key) if hasattr(form, "get") else None
+    if value is None:
+        return []
+    return value if isinstance(value, list) else [value]
+
 def format_ru_datetime(value: str) -> str:
     months = {
         1: "января", 2: "февраля", 3: "марта", 4: "апреля",
@@ -150,6 +158,20 @@ def format_ru_datetime(value: str) -> str:
         except ValueError:
             continue
     return text
+
+def extract_price_number(value: str) -> str:
+    digits = re.sub(r"[^\d]", "", value or "")
+    return digits or ""
+
+def default_og_image_url() -> str:
+    candidates = [
+        Path("static/images/photo_2026-06-08_20-36-17.jpg"),
+        Path("static/images/android-chrome-512x512.png"),
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return settings.BASE_URL + "/" + str(candidate).replace("\\", "/")
+    return ""
 
 def get_social_links(site_settings: dict) -> list[dict]:
     links = [
@@ -239,6 +261,9 @@ class Database:
                         description TEXT NOT NULL DEFAULT '',
                         service_includes TEXT NOT NULL DEFAULT '',
                         suitable_for TEXT NOT NULL DEFAULT '',
+                        h1_title TEXT NOT NULL DEFAULT '',
+                        detailed_description TEXT NOT NULL DEFAULT '',
+                        preparation_text TEXT NOT NULL DEFAULT '',
                         duration TEXT NOT NULL DEFAULT '',
                         is_popular INTEGER NOT NULL DEFAULT 0,
                         service_group TEXT NOT NULL DEFAULT 'main',
@@ -310,6 +335,31 @@ class Database:
                         FOREIGN KEY(category_id) REFERENCES portfolio_categories(id),
                         FOREIGN KEY(service_id) REFERENCES services(id)
                     );
+                    CREATE TABLE IF NOT EXISTS service_faq (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        service_id INTEGER NOT NULL,
+                        question TEXT NOT NULL,
+                        answer TEXT NOT NULL,
+                        sort_order INTEGER NOT NULL DEFAULT 0,
+                        is_active INTEGER NOT NULL DEFAULT 1,
+                        FOREIGN KEY(service_id) REFERENCES services(id)
+                    );
+                    CREATE TABLE IF NOT EXISTS service_related_services (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        service_id INTEGER NOT NULL,
+                        related_service_id INTEGER NOT NULL,
+                        sort_order INTEGER NOT NULL DEFAULT 0,
+                        FOREIGN KEY(service_id) REFERENCES services(id),
+                        FOREIGN KEY(related_service_id) REFERENCES services(id)
+                    );
+                    CREATE TABLE IF NOT EXISTS service_related_posts (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        service_id INTEGER NOT NULL,
+                        post_id INTEGER NOT NULL,
+                        sort_order INTEGER NOT NULL DEFAULT 0,
+                        FOREIGN KEY(service_id) REFERENCES services(id),
+                        FOREIGN KEY(post_id) REFERENCES blog_posts(id)
+                    );
                 """)
                 await self.migrate_db(db)
                 await self.seed_defaults(db)
@@ -330,6 +380,9 @@ class Database:
         await ensure_column("services", "portfolio_category_id", "INTEGER")
         await ensure_column("services", "service_includes", "TEXT NOT NULL DEFAULT ''")
         await ensure_column("services", "suitable_for", "TEXT NOT NULL DEFAULT ''")
+        await ensure_column("services", "h1_title", "TEXT NOT NULL DEFAULT ''")
+        await ensure_column("services", "detailed_description", "TEXT NOT NULL DEFAULT ''")
+        await ensure_column("services", "preparation_text", "TEXT NOT NULL DEFAULT ''")
         await ensure_column("services", "duration", "TEXT NOT NULL DEFAULT ''")
         await ensure_column("services", "is_popular", "INTEGER NOT NULL DEFAULT 0")
         await ensure_column("services", "service_group", "TEXT NOT NULL DEFAULT 'main'")
@@ -338,6 +391,33 @@ class Database:
         await ensure_column("blog_photos", "created_at", "TEXT NOT NULL DEFAULT ''")
         await ensure_column("blog_posts", "is_deleted", "INTEGER NOT NULL DEFAULT 0")
         await ensure_column("portfolio_categories", "is_deleted", "INTEGER NOT NULL DEFAULT 0")
+        await db.executescript("""
+            CREATE TABLE IF NOT EXISTS service_faq (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                service_id INTEGER NOT NULL,
+                question TEXT NOT NULL,
+                answer TEXT NOT NULL,
+                sort_order INTEGER NOT NULL DEFAULT 0,
+                is_active INTEGER NOT NULL DEFAULT 1,
+                FOREIGN KEY(service_id) REFERENCES services(id)
+            );
+            CREATE TABLE IF NOT EXISTS service_related_services (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                service_id INTEGER NOT NULL,
+                related_service_id INTEGER NOT NULL,
+                sort_order INTEGER NOT NULL DEFAULT 0,
+                FOREIGN KEY(service_id) REFERENCES services(id),
+                FOREIGN KEY(related_service_id) REFERENCES services(id)
+            );
+            CREATE TABLE IF NOT EXISTS service_related_posts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                service_id INTEGER NOT NULL,
+                post_id INTEGER NOT NULL,
+                sort_order INTEGER NOT NULL DEFAULT 0,
+                FOREIGN KEY(service_id) REFERENCES services(id),
+                FOREIGN KEY(post_id) REFERENCES blog_posts(id)
+            );
+        """)
 
     async def seed_defaults(self, db):
         default_settings = {
@@ -538,6 +618,9 @@ class Database:
             form.get("description") or "",
             form.get("service_includes") or "",
             form.get("suitable_for") or "",
+            form.get("h1_title") or "",
+            form.get("detailed_description") or "",
+            form.get("preparation_text") or "",
             form.get("duration") or "",
             form.get("price") or "",
             int(form.get("sort_order") or 0),
@@ -552,19 +635,146 @@ class Database:
         if service_id:
             await self.execute("""
                 UPDATE services
-                SET title=?, slug=?, description=?, service_includes=?, suitable_for=?, duration=?, price=?, sort_order=?, seo_title=?, seo_description=?,
+                SET title=?, slug=?, description=?, service_includes=?, suitable_for=?, h1_title=?, detailed_description=?, preparation_text=?,
+                    duration=?, price=?, sort_order=?, seo_title=?, seo_description=?,
                     is_hit=?, is_popular=?, service_group=?, portfolio_category_id=?, is_active=?
                 WHERE id=?
             """, values + (service_id,))
+            return int(service_id)
         else:
-            await self.execute("""
+            return await self.execute("""
                 INSERT INTO services
-                (title, slug, description, service_includes, suitable_for, duration, price, sort_order, seo_title, seo_description, is_hit, is_popular, service_group, portfolio_category_id, is_active)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (title, slug, description, service_includes, suitable_for, h1_title, detailed_description, preparation_text,
+                 duration, price, sort_order, seo_title, seo_description, is_hit, is_popular, service_group, portfolio_category_id, is_active)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, values)
 
     async def delete_service(self, service_id: int):
+        await self.execute("DELETE FROM service_faq WHERE service_id = ?", (service_id,))
+        await self.execute("DELETE FROM service_related_services WHERE service_id = ? OR related_service_id = ?", (service_id, service_id))
+        await self.execute("DELETE FROM service_related_posts WHERE service_id = ?", (service_id,))
         await self.execute("DELETE FROM services WHERE id = ?", (service_id,))
+
+    async def save_service_extensions(self, service_id: int, form):
+        faq_ids_to_delete = {str(item) for item in form_getlist(form, "faq_delete")}
+        faq_ids = form_getlist(form, "faq_id")
+        faq_questions = form_getlist(form, "faq_question")
+        faq_answers = form_getlist(form, "faq_answer")
+        faq_orders = form_getlist(form, "faq_sort_order")
+
+        await self.execute("DELETE FROM service_faq WHERE service_id = ?", (service_id,))
+        for index, question in enumerate(faq_questions):
+            answer = faq_answers[index] if index < len(faq_answers) else ""
+            original_id = str(faq_ids[index]) if index < len(faq_ids) else ""
+            if original_id and original_id in faq_ids_to_delete:
+                continue
+            question = (question or "").strip()
+            answer = (answer or "").strip()
+            if not question or not answer:
+                continue
+            try:
+                sort_order = int(faq_orders[index]) if index < len(faq_orders) and faq_orders[index] else index * 10
+            except ValueError:
+                sort_order = index * 10
+            await self.execute("""
+                INSERT INTO service_faq (service_id, question, answer, sort_order, is_active)
+                VALUES (?, ?, ?, ?, 1)
+            """, (service_id, question, answer, sort_order))
+
+        await self.execute("DELETE FROM service_related_services WHERE service_id = ?", (service_id,))
+        seen_services = set()
+        for index, related_id in enumerate(form_getlist(form, "related_service_ids")):
+            try:
+                related_id_int = int(related_id)
+            except (TypeError, ValueError):
+                continue
+            if related_id_int == service_id or related_id_int in seen_services:
+                continue
+            seen_services.add(related_id_int)
+            await self.execute("""
+                INSERT INTO service_related_services (service_id, related_service_id, sort_order)
+                VALUES (?, ?, ?)
+            """, (service_id, related_id_int, index * 10))
+
+        await self.execute("DELETE FROM service_related_posts WHERE service_id = ?", (service_id,))
+        seen_posts = set()
+        for index, post_id in enumerate(form_getlist(form, "related_post_ids")):
+            try:
+                post_id_int = int(post_id)
+            except (TypeError, ValueError):
+                continue
+            if post_id_int in seen_posts:
+                continue
+            seen_posts.add(post_id_int)
+            await self.execute("""
+                INSERT INTO service_related_posts (service_id, post_id, sort_order)
+                VALUES (?, ?, ?)
+            """, (service_id, post_id_int, index * 10))
+
+    async def get_service_faq(self, service_id: int, active_only: bool = True) -> list[dict]:
+        where = "AND is_active = 1" if active_only else ""
+        return await self.fetch_all(f"""
+            SELECT * FROM service_faq
+            WHERE service_id = ? {where}
+            ORDER BY sort_order, id
+        """, (service_id,))
+
+    async def get_service_portfolio_photos(self, service: dict, limit: int = 6) -> list[dict]:
+        if not service.get("portfolio_category_id"):
+            return []
+        photos = await self.fetch_all("""
+            SELECT * FROM portfolio_photos
+            WHERE category_id = ? AND is_active = 1
+            ORDER BY sort_order, id DESC
+            LIMIT ?
+        """, (service["portfolio_category_id"], limit))
+        fallback = f"{service.get('title', 'Услуга')} в Санкт-Петербурге — работа визажиста Тины Борке"
+        for photo in photos:
+            photo["display_alt"] = (photo.get("alt_text") or "").strip() or fallback
+        return photos
+
+    async def get_related_services(self, service_id: int, active_only: bool = True) -> list[dict]:
+        active_filter = "AND related.is_active = 1" if active_only else ""
+        return await self.fetch_all(f"""
+            SELECT related.*
+            FROM service_related_services links
+            JOIN services related ON related.id = links.related_service_id
+            WHERE links.service_id = ? {active_filter}
+            ORDER BY links.sort_order, related.sort_order, related.id
+        """, (service_id,))
+
+    async def get_related_posts(self, service_id: int, visible_only: bool = True) -> list[dict]:
+        visible_filter = "AND posts.is_visible = 1" if visible_only else ""
+        posts = await self.fetch_all(f"""
+            SELECT posts.*,
+                   COALESCE(posts.first_image, (
+                       SELECT image_path FROM blog_photos
+                       WHERE blog_photos.post_id = posts.id
+                       ORDER BY sort_order, id
+                       LIMIT 1
+                   )) AS preview_image
+            FROM service_related_posts links
+            JOIN blog_posts posts ON posts.id = links.post_id
+            WHERE links.service_id = ? AND posts.is_deleted = 0 {visible_filter}
+            ORDER BY links.sort_order, posts.created_at DESC, posts.id DESC
+        """, (service_id,))
+        for post in posts:
+            post["excerpt"] = plain_excerpt(post.get("text_markdown", ""), 180)
+        return posts
+
+    async def get_service_related_ids(self, service_id: int) -> dict:
+        service_rows = await self.fetch_all(
+            "SELECT related_service_id FROM service_related_services WHERE service_id = ? ORDER BY sort_order, id",
+            (service_id,),
+        )
+        post_rows = await self.fetch_all(
+            "SELECT post_id FROM service_related_posts WHERE service_id = ? ORDER BY sort_order, id",
+            (service_id,),
+        )
+        return {
+            "service_ids": [row["related_service_id"] for row in service_rows],
+            "post_ids": [row["post_id"] for row in post_rows],
+        }
 
     async def get_reviews(
         self,
@@ -1302,24 +1512,63 @@ async def service_page(request: Request, slug: str):
         for line in (service.get("service_includes") or "").splitlines()
         if line.strip(" -\t")
     ]
+    service_h1 = service.get("h1_title") or service["title"]
+    seo_title = service.get("seo_title") or service["title"]
+    seo_description = service.get("seo_description") or plain_excerpt(service.get("description") or service["title"])
+    canonical_url = settings.BASE_URL + f"/uslugi/{slug}"
+    faq_items = await db.get_service_faq(service["id"])
+    portfolio_photos = await db.get_service_portfolio_photos(service, limit=6)
+    related_services = await db.get_related_services(service["id"], active_only=True)
+    related_posts = await db.get_related_posts(service["id"], visible_only=True)
+    preview_image_url = ""
+    if portfolio_photos:
+        preview_image_url = settings.BASE_URL + portfolio_photos[0]["image_path"]
+    else:
+        preview_image_url = default_og_image_url()
+
     service_ld = {
         "@context": "https://schema.org",
         "@type": "Service",
         "name": service["title"],
-        "description": service["description"],
-        "provider": {"@type": "BeautySalon", "name": f"Визажист {site_settings.get('master_name', 'Тина Борке')}"},
+        "description": seo_description,
+        "provider": {"@type": "BeautySalon", "name": f"Визаж & Грим от {site_settings.get('master_name_genitive', 'Тины Борке')}"},
         "areaServed": site_settings.get("city", "Санкт-Петербург"),
-        "offers": {"@type": "Offer", "price": service["price"], "priceCurrency": "RUB"},
-        "hoursAvailable": service.get("duration", ""),
     }
+    price_number = extract_price_number(service.get("price", ""))
+    if price_number:
+        service_ld["offers"] = {"@type": "Offer", "price": price_number, "priceCurrency": "RUB"}
+    if service.get("duration"):
+        service_ld["hoursAvailable"] = service["duration"]
+    json_ld_payload = [service_ld]
+    if faq_items:
+        json_ld_payload.append({
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            "mainEntity": [
+                {
+                    "@type": "Question",
+                    "name": item["question"],
+                    "acceptedAnswer": {"@type": "Answer", "text": item["answer"]},
+                }
+                for item in faq_items
+            ],
+        })
     return templates.TemplateResponse(request, "service.html", {
             "site_settings": site_settings,
             "social_links": get_social_links(site_settings),
             "service": service,
+            "service_h1": service_h1,
+            "seo_title": seo_title,
+            "seo_description": seo_description,
             "service_include_items": service_include_items,
+            "faq_items": faq_items,
+            "portfolio_photos": portfolio_photos,
+            "related_services": related_services,
+            "related_posts": related_posts,
             "reviews": reviews,
-            "canonical_url": settings.BASE_URL + f"/uslugi/{slug}",
-            "json_ld": json.dumps(service_ld, ensure_ascii=False),
+            "canonical_url": canonical_url,
+            "preview_image_url": preview_image_url,
+            "json_ld": json.dumps(json_ld_payload, ensure_ascii=False),
     })
 
 @app.get("/robots.txt", response_class=PlainTextResponse)
@@ -1413,6 +1662,13 @@ async def admin_dashboard(request: Request, tab: str = "settings", _: str = Depe
     for post in posts:
         full_post = await db.get_blog_post_by_id(post["id"])
         post["photos"] = full_post.get("photos", []) if full_post else []
+        post["admin_label"] = plain_excerpt(post.get("text_markdown", ""), 90) or post.get("title") or f"Пост {post['id']}"
+    services = await db.get_services(active_only=False)
+    for service in services:
+        service["faq"] = await db.get_service_faq(service["id"], active_only=False)
+        related_ids = await db.get_service_related_ids(service["id"])
+        service["related_service_ids"] = related_ids["service_ids"]
+        service["related_post_ids"] = related_ids["post_ids"]
     return templates.TemplateResponse(request, "admin.html", {
         "active_tab": active_tab,
         "site_settings": site_settings,
@@ -1423,7 +1679,7 @@ async def admin_dashboard(request: Request, tab: str = "settings", _: str = Depe
             "api_id": bool(settings.TELEGRAM_API_ID),
             "api_hash": bool(settings.TELEGRAM_API_HASH),
         },
-        "services": await db.get_services(active_only=False),
+        "services": services,
         "reviews": await db.get_reviews(active_only=False),
         "posts": posts,
         "portfolio_categories": await db.get_portfolio_categories(active_only=False),
@@ -1445,7 +1701,9 @@ async def admin_save_settings(request: Request, _: str = Depends(require_admin))
 
 @app.post("/admin/services/save")
 async def admin_save_service(request: Request, _: str = Depends(require_admin)):
-    await db.save_service(dict(await request.form()))
+    form_data = await request.form()
+    service_id = await db.save_service(form_data)
+    await db.save_service_extensions(service_id, form_data)
     return RedirectResponse("/admin?tab=services", status_code=303)
 
 @app.post("/admin/services/{service_id}/delete")

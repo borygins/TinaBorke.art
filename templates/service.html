@@ -3,12 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ service.seo_title or service.title }}</title>
-    <meta name="description" content="{{ service.seo_description }}">
+    <title>{{ seo_title }}</title>
+    <meta name="description" content="{{ seo_description }}">
     <link rel="canonical" href="{{ canonical_url }}">
+    <meta property="og:title" content="{{ seo_title }}">
+    <meta property="og:description" content="{{ seo_description }}">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ canonical_url }}">
+    {% if preview_image_url %}<meta property="og:image" content="{{ preview_image_url }}">{% endif %}
     {% include "_favicon.html" %}
     <link rel="stylesheet" href="/static/css/style.css?v=8">
-    <link rel="stylesheet" href="/static/css/inner-pages.css?v=2">
+    <link rel="stylesheet" href="/static/css/inner-pages.css?v=6">
 </head>
 <body class="inner-page service-detail-page">
     {% include "_site_header.html" %}
@@ -24,22 +29,24 @@
                 {% if service.is_hit %}
                 <span class="service-hit-badge">Хит</span>
                 {% endif %}
-                <h1>{{ service.title }}</h1>
+                <h1>{{ service_h1 }}</h1>
                 <p class="service-lead">{{ service.description }}</p>
+                {% if service.duration or service.price %}
                 <div class="service-price-panel">
                     {% if service.duration %}
                     <span>Время выполнения</span>
                     <strong>{{ service.duration }}</strong>
                     {% endif %}
+                    {% if service.price %}
                     <span>Стоимость</span>
                     <strong>{{ service.price }}</strong>
+                    {% endif %}
                 </div>
+                {% endif %}
                 <div class="service-actions">
                     <a class="btn btn--primary" href="/#booking">Записаться</a>
                     {% if service.portfolio_slug %}
                     <a class="btn btn--secondary" href="/portfolio/{{ service.portfolio_slug }}">Посмотреть работы в портфолио</a>
-                    {% else %}
-                    <a class="btn btn--secondary" href="/portfolio">Посмотреть работы в портфолио</a>
                     {% endif %}
                 </div>
             </div>
@@ -66,6 +73,87 @@
         </section>
         {% endif %}
 
+        {% if service.detailed_description %}
+        <section class="service-content-card">
+            <h2>Подробнее об услуге</h2>
+            <p class="service-info-text">{{ service.detailed_description }}</p>
+        </section>
+        {% endif %}
+
+        {% if service.preparation_text %}
+        <section class="service-content-card">
+            <h2>Как подготовиться</h2>
+            <p class="service-info-text">{{ service.preparation_text }}</p>
+        </section>
+        {% endif %}
+
+        {% if portfolio_photos %}
+        <section class="service-portfolio-preview">
+            <div class="service-section-head">
+                <h2>Работы по этой услуге</h2>
+                {% if service.portfolio_slug %}
+                <a href="/portfolio/{{ service.portfolio_slug }}">Смотреть все работы</a>
+                {% endif %}
+            </div>
+            <div class="service-photo-grid" data-lightbox-gallery>
+                {% for photo in portfolio_photos %}
+                <button class="portfolio-photo" type="button" data-full="{{ photo.image_path }}" data-alt="{{ photo.display_alt }}">
+                    <img src="{{ photo.image_path }}" alt="{{ photo.display_alt }}" loading="lazy">
+                </button>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+
+        {% if faq_items %}
+        <section class="service-faq">
+            <h2>Частые вопросы</h2>
+            <div class="service-faq-list">
+                {% for item in faq_items %}
+                <details class="service-faq-item">
+                    <summary>{{ item.question }}</summary>
+                    <p>{{ item.answer }}</p>
+                </details>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+
+        {% if related_services %}
+        <section class="service-related">
+            <h2>Вам может подойти</h2>
+            <div class="service-related-grid">
+                {% for related in related_services %}
+                <article class="service-related-card">
+                    {% if related.is_hit %}<span class="service-hit-badge">Хит</span>{% endif %}
+                    <h3>{{ related.title }}</h3>
+                    {% if related.duration %}<p>Время: {{ related.duration }}</p>{% endif %}
+                    {% if related.price %}<strong>{{ related.price }}</strong>{% endif %}
+                    <a class="btn btn--secondary" href="/uslugi/{{ related.slug }}">Подробнее</a>
+                </article>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+
+        {% if related_posts %}
+        <section class="service-related">
+            <h2>Полезные статьи по теме</h2>
+            <div class="service-related-grid">
+                {% for post in related_posts %}
+                <article class="service-post-card">
+                    {% if post.preview_image %}
+                    <img src="{{ post.preview_image }}" alt="Фото к статье" loading="lazy">
+                    {% endif %}
+                    <time datetime="{{ post.created_at }}">{{ post.created_at|ru_datetime }}</time>
+                    <p>{{ post.excerpt }}</p>
+                    <a class="btn btn--secondary" href="/blog/{{ post.slug }}">Читать</a>
+                </article>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+
         {% if reviews %}
         <section class="service-reviews">
             <h2>Отзывы клиентов</h2>
@@ -79,13 +167,17 @@
             </div>
         </section>
         {% endif %}
-
-        <section class="service-seo-text">
-            <h2>{{ service.title }}</h2>
-            <p>{{ service.seo_description or service.description }}</p>
-        </section>
     </main>
+    {% if portfolio_photos %}
+    <div class="lightbox" id="portfolioLightbox" hidden>
+        <button class="lightbox__close" type="button" aria-label="Закрыть">×</button>
+        <button class="lightbox__nav lightbox__nav--prev" type="button" aria-label="Предыдущее фото">‹</button>
+        <img src="" alt="">
+        <button class="lightbox__nav lightbox__nav--next" type="button" aria-label="Следующее фото">›</button>
+    </div>
+    {% endif %}
     {% include "_site_footer.html" %}
     <script type="application/ld+json">{{ json_ld|safe }}</script>
+    {% if portfolio_photos %}<script src="/static/js/portfolio-lightbox.js"></script>{% endif %}
 </body>
 </html>

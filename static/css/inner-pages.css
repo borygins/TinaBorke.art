@@ -153,6 +153,8 @@
 
 .service-detail-grid,
 .service-review-grid,
+.service-photo-grid,
+.service-related-grid,
 .content-grid,
 .blog-grid,
 .portfolio-category-grid,
@@ -175,6 +177,12 @@
 
 .service-info-card,
 .service-review-card,
+.service-content-card,
+.service-faq,
+.service-related,
+.service-portfolio-preview,
+.service-related-card,
+.service-post-card,
 .service-seo-text,
 .content-grid > div,
 .blog-card,
@@ -197,11 +205,16 @@
 
 .service-info-card h2,
 .service-reviews h2,
+.service-content-card h2,
+.service-faq h2,
+.service-related h2,
+.service-portfolio-preview h2,
 .service-seo-text h2,
 .content-grid h2,
 .blog-card h2,
 .portfolio-card h2,
-.service-review-card h3 {
+.service-review-card h3,
+.service-related-card h3 {
     margin: 0 0 12px;
     color: var(--inner-gold);
     letter-spacing: 0;
@@ -210,6 +223,9 @@
 .service-info-card p,
 .service-info-card li,
 .service-review-card p,
+.service-content-card p,
+.service-related-card p,
+.service-post-card p,
 .service-seo-text p,
 .content-grid p,
 .blog-card p,
@@ -241,8 +257,95 @@
 }
 
 .service-reviews,
+.service-content-card,
+.service-faq,
+.service-related,
+.service-portfolio-preview,
 .service-seo-text {
     margin-top: 28px;
+}
+
+.service-section-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: center;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+}
+
+.service-section-head h2 {
+    margin: 0;
+}
+
+.service-section-head a {
+    color: var(--inner-gold-light);
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.service-photo-grid {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.service-faq-list {
+    display: grid;
+    gap: 12px;
+}
+
+.service-faq-item {
+    border: 1px solid rgba(212, 175, 55, 0.16);
+    border-radius: 8px;
+    background: rgba(26, 26, 26, 0.24);
+}
+
+.service-faq-item summary {
+    min-height: 54px;
+    padding: 16px 18px;
+    color: var(--inner-gold-light);
+    cursor: pointer;
+    font-weight: 800;
+}
+
+.service-faq-item p {
+    margin: 0;
+    padding: 0 18px 18px;
+    color: var(--inner-muted);
+    line-height: 1.72;
+}
+
+.service-related-grid {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.service-related-card,
+.service-post-card {
+    display: grid;
+    gap: 12px;
+    align-content: start;
+}
+
+.service-related-card strong {
+    color: var(--inner-gold-light);
+    font-size: 1.28rem;
+}
+
+.service-related-card .btn,
+.service-post-card .btn {
+    justify-self: start;
+}
+
+.service-post-card img {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    border-radius: 8px;
+    object-fit: cover;
+}
+
+.service-post-card time {
+    color: rgba(232, 224, 210, 0.62);
+    font-size: 0.78rem;
+    font-style: italic;
 }
 
 .portfolio-card {

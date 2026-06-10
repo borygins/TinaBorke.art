@@ -7,7 +7,7 @@
     <title>Админка TinaBorke.Art</title>
     {% include "_favicon.html" %}
     <link rel="stylesheet" href="/static/css/style.css?v=8">
-    <link rel="stylesheet" href="/static/css/admin.css?v=5">
+    <link rel="stylesheet" href="/static/css/admin.css?v=8">
 </head>
 <body class="admin-page">
     <main class="admin-shell">
@@ -88,36 +88,79 @@
 
         <section class="admin-panel {% if active_tab != 'services' %}is-hidden{% endif %}" id="services">
             <h2>Услуги</h2>
-            <form method="post" action="/admin/services/save" class="admin-form">
-                <label>Название услуги<input name="title" placeholder="Например: Вечерний макияж" required></label>
-                <label>Адрес страницы<input name="slug" placeholder="Можно оставить пустым"></label>
-                <label>Цена<input name="price" placeholder="Например: от 3 000 ₽"></label>
-                <label>Время выполнения<input name="duration" placeholder="Например: 1 час 30 минут"></label>
-                <label>Порядок<input name="sort_order" type="number" value="100"></label>
-                <label>Блок на главной
-                    <select name="service_group">
-                        <option value="main">Основные услуги</option>
-                        <option value="additional">Дополнительные услуги</option>
-                    </select>
-                </label>
-                <label>Категория портфолио
-                    <select name="portfolio_category_id">
-                        <option value="">Не выбрана</option>
-                        {% for category in portfolio_categories %}
-                        <option value="{{ category.id }}">{{ category.title }}</option>
+            <details class="admin-create-details">
+                <summary>Добавить новую услугу</summary>
+                <form method="post" action="/admin/services/save" class="admin-form">
+                    <h3 class="admin-wide">Основное</h3>
+                    <label>Название услуги<input name="title" placeholder="Например: Вечерний макияж" required></label>
+                    <label>Адрес страницы<input name="slug" placeholder="Можно оставить пустым"></label>
+                    <label>Цена<input name="price" placeholder="Например: от 3 000 ₽"></label>
+                    <label>Время выполнения<input name="duration" placeholder="Например: 1 час 30 минут"></label>
+                    <label>Порядок<input name="sort_order" type="number" value="100"></label>
+                    <label>Блок на главной
+                        <select name="service_group">
+                            <option value="main">Основные услуги</option>
+                            <option value="additional">Дополнительные услуги</option>
+                        </select>
+                    </label>
+                    <label>Категория портфолио
+                        <select name="portfolio_category_id">
+                            <option value="">Не выбрана</option>
+                            {% for category in portfolio_categories %}
+                            <option value="{{ category.id }}">{{ category.title }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                    <label class="admin-check"><input type="checkbox" name="is_popular"> Популярная</label>
+                    <label class="admin-check"><input type="checkbox" name="is_hit"> Хит</label>
+                    <label class="admin-check"><input type="checkbox" name="is_active" checked> Показывать</label>
+                    <label class="admin-wide">Короткое описание услуги<textarea name="description" rows="3"></textarea></label>
+
+                    <h3 class="admin-wide">SEO</h3>
+                    <label class="admin-wide">Заголовок для поиска<textarea name="seo_title" rows="2"></textarea></label>
+                    <label class="admin-wide">Описание для поиска<textarea name="seo_description" rows="3"></textarea></label>
+                    <label class="admin-wide">H1 страницы<textarea name="h1_title" rows="2" placeholder="Видимый главный заголовок страницы"></textarea></label>
+
+                    <h3 class="admin-wide">Контент страницы</h3>
+                    <label class="admin-wide">Что входит в услугу<textarea name="service_includes" rows="5" placeholder="Каждый пункт с новой строки"></textarea></label>
+                    <label class="admin-wide">Кому подходит<textarea name="suitable_for" rows="3"></textarea></label>
+                    <label class="admin-wide">Подробное описание услуги<textarea name="detailed_description" rows="5"></textarea></label>
+                    <label class="admin-wide">Как подготовиться<textarea name="preparation_text" rows="4"></textarea></label>
+
+                    <h3 class="admin-wide">Портфолио</h3>
+                    <p class="admin-help admin-wide">На странице услуги автоматически появятся 3–6 фото из выбранного раздела портфолио.</p>
+
+                    <h3 class="admin-wide">FAQ</h3>
+                    <div class="admin-wide admin-repeat-list">
+                        {% for index in range(3) %}
+                        <div class="admin-repeat-row">
+                            <input type="hidden" name="faq_id" value="">
+                            <label>Вопрос<textarea name="faq_question" rows="2"></textarea></label>
+                            <label>Ответ<textarea name="faq_answer" rows="3"></textarea></label>
+                            <label>Порядок<input name="faq_sort_order" type="number" value="{{ 10 + index * 10 }}"></label>
+                        </div>
                         {% endfor %}
-                    </select>
-                </label>
-                <label class="admin-check"><input type="checkbox" name="is_popular"> Популярная</label>
-                <label class="admin-check"><input type="checkbox" name="is_hit"> Хит</label>
-                <label class="admin-check"><input type="checkbox" name="is_active" checked> Показывать</label>
-                <label class="admin-wide">Короткое описание услуги<textarea name="description" rows="3"></textarea></label>
-                <label class="admin-wide">Что входит в услугу<textarea name="service_includes" rows="5" placeholder="Каждый пункт с новой строки"></textarea></label>
-                <label class="admin-wide">Кому подходит<textarea name="suitable_for" rows="3"></textarea></label>
-                <label class="admin-wide">Заголовок для поиска<textarea name="seo_title" rows="2"></textarea></label>
-                <label class="admin-wide">Описание для поиска<textarea name="seo_description" rows="3"></textarea></label>
-                <button class="btn btn--primary" type="submit">Добавить услугу</button>
-            </form>
+                    </div>
+
+                    <div class="admin-wide">
+                        <h3>Связанные услуги</h3>
+                        <div class="admin-checkbox-grid admin-checkbox-grid--compact">
+                            {% for related_service in services %}
+                            <label class="admin-check"><input type="checkbox" name="related_service_ids" value="{{ related_service.id }}"> {{ related_service.title }}{% if not related_service.is_active %} (скрыта){% endif %}</label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="admin-wide">
+                        <h3>Связанные статьи блога</h3>
+                        <div class="admin-checkbox-grid admin-checkbox-grid--compact">
+                            {% for post in posts %}
+                            <label class="admin-check"><input type="checkbox" name="related_post_ids" value="{{ post.id }}"> {{ post.admin_label }}</label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <button class="btn btn--primary" type="submit">Добавить услугу</button>
+                </form>
+            </details>
 
             <div class="admin-compact-list">
                 {% for service in services %}
@@ -132,6 +175,7 @@
                     </summary>
                     <form method="post" action="/admin/services/save" class="admin-form admin-form--inside">
                         <input type="hidden" name="id" value="{{ service.id }}">
+                        <h3 class="admin-wide">Основное</h3>
                         <label>Название<input name="title" value="{{ service.title }}"></label>
                         <label>Адрес страницы<input name="slug" value="{{ service.slug }}"></label>
                         <label>Цена<input name="price" value="{{ service.price }}"></label>
@@ -154,11 +198,58 @@
                         <label class="admin-check"><input type="checkbox" name="is_popular" {% if service.is_popular %}checked{% endif %}> Популярная</label>
                         <label class="admin-check"><input type="checkbox" name="is_hit" {% if service.is_hit %}checked{% endif %}> Хит</label>
                         <label class="admin-check"><input type="checkbox" name="is_active" {% if service.is_active %}checked{% endif %}> Видна</label>
-                        {{ text_editor('Описание', 'description', service.description, 4) }}
-                        {{ text_editor('Что входит', 'service_includes', service.service_includes, 5, 'Пункты не заполнены', 'Каждый пункт с новой строки') }}
-                        {{ text_editor('Кому подходит', 'suitable_for', service.suitable_for, 4) }}
+                        {{ text_editor('Короткое описание услуги', 'description', service.description, 4) }}
+
+                        <h3 class="admin-wide">SEO</h3>
                         {{ text_editor('Заголовок для поиска', 'seo_title', service.seo_title, 3) }}
                         {{ text_editor('Описание для поиска', 'seo_description', service.seo_description, 4) }}
+                        {{ text_editor('H1 страницы', 'h1_title', service.h1_title, 3, 'Если пусто, будет название услуги') }}
+
+                        <h3 class="admin-wide">Контент страницы</h3>
+                        {{ text_editor('Что входит', 'service_includes', service.service_includes, 5, 'Пункты не заполнены', 'Каждый пункт с новой строки') }}
+                        {{ text_editor('Кому подходит', 'suitable_for', service.suitable_for, 4) }}
+                        {{ text_editor('Подробное описание услуги', 'detailed_description', service.detailed_description, 6) }}
+                        {{ text_editor('Как подготовиться', 'preparation_text', service.preparation_text, 4) }}
+
+                        <h3 class="admin-wide">Портфолио</h3>
+                        <p class="admin-help admin-wide">На странице услуги автоматически появятся 3–6 фото из выбранного раздела портфолио.</p>
+
+                        <h3 class="admin-wide">FAQ</h3>
+                        <div class="admin-wide admin-repeat-list">
+                            {% for faq in service.faq %}
+                            <div class="admin-repeat-row">
+                                <input type="hidden" name="faq_id" value="{{ faq.id }}">
+                                <label>Вопрос<textarea name="faq_question" rows="2">{{ faq.question }}</textarea></label>
+                                <label>Ответ<textarea name="faq_answer" rows="3">{{ faq.answer }}</textarea></label>
+                                <label>Порядок<input name="faq_sort_order" type="number" value="{{ faq.sort_order }}"></label>
+                                <label class="admin-check"><input type="checkbox" name="faq_delete" value="{{ faq.id }}"> Удалить вопрос</label>
+                            </div>
+                            {% endfor %}
+                            {% for index in range(3) %}
+                            <div class="admin-repeat-row">
+                                <input type="hidden" name="faq_id" value="">
+                                <label>Новый вопрос<textarea name="faq_question" rows="2"></textarea></label>
+                                <label>Ответ<textarea name="faq_answer" rows="3"></textarea></label>
+                                <label>Порядок<input name="faq_sort_order" type="number" value="{{ 100 + index * 10 }}"></label>
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                        <h3 class="admin-wide">Связанные услуги</h3>
+                        <div class="admin-wide admin-checkbox-grid admin-checkbox-grid--compact">
+                            {% for related_service in services %}
+                            {% if related_service.id != service.id %}
+                            <label class="admin-check"><input type="checkbox" name="related_service_ids" value="{{ related_service.id }}" {% if related_service.id in service.related_service_ids %}checked{% endif %}> {{ related_service.title }}{% if not related_service.is_active %} (скрыта){% endif %}</label>
+                            {% endif %}
+                            {% endfor %}
+                        </div>
+
+                        <h3 class="admin-wide">Связанные статьи</h3>
+                        <div class="admin-wide admin-checkbox-grid admin-checkbox-grid--compact">
+                            {% for post in posts %}
+                            <label class="admin-check"><input type="checkbox" name="related_post_ids" value="{{ post.id }}" {% if post.id in service.related_post_ids %}checked{% endif %}> {{ post.admin_label }}</label>
+                            {% endfor %}
+                        </div>
                         <button class="btn btn--primary" type="submit">Сохранить услугу</button>
                     </form>
                     <form method="post" action="/admin/services/{{ service.id }}/delete" class="admin-delete-form">

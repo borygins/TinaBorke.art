@@ -8,7 +8,7 @@
     <link rel="canonical" href="{{ canonical_url }}">
     {% include "_favicon.html" %}
     <link rel="stylesheet" href="/static/css/style.css?v=8">
-    <link rel="stylesheet" href="/static/css/inner-pages.css?v=2">
+    <link rel="stylesheet" href="/static/css/inner-pages.css?v=6">
 </head>
 <body class="inner-page">
     {% include "_site_header.html" %}
@@ -25,8 +25,9 @@
         {% if category.photos %}
         <section class="portfolio-photo-grid" data-lightbox-gallery>
             {% for photo in category.photos %}
-            <button class="portfolio-photo" type="button" data-full="{{ photo.image_path }}" data-alt="{{ photo.alt_text }}">
-                <img src="{{ photo.image_path }}" alt="{{ photo.alt_text }}" loading="lazy">
+            {% set photo_alt = photo.alt_text or category.title ~ ' в Санкт-Петербурге — работа визажиста ' ~ site_settings.get('master_name_genitive', 'Тины Борке') %}
+            <button class="portfolio-photo" type="button" data-full="{{ photo.image_path }}" data-alt="{{ photo_alt }}">
+                <img src="{{ photo.image_path }}" alt="{{ photo_alt }}" loading="lazy">
             </button>
             {% endfor %}
         </section>

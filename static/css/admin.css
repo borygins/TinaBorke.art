@@ -119,6 +119,90 @@
     letter-spacing: 0;
 }
 
+.admin-create-details {
+    margin: 0 0 18px;
+    border: 1px solid var(--admin-border);
+    border-radius: 8px;
+    background: var(--admin-surface-soft);
+}
+
+.admin-create-details > summary {
+    min-height: 54px;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    color: var(--admin-primary);
+    cursor: pointer;
+    font-size: 1.05rem;
+    font-weight: 800;
+}
+
+.admin-create-details .admin-form {
+    margin: 0 !important;
+    border: 0;
+    border-top: 1px solid var(--admin-border);
+    border-radius: 0 0 8px 8px;
+}
+
+.admin-form h3 {
+    margin: 8px 0 0;
+    padding-top: 14px;
+    border-top: 1px solid var(--admin-border);
+    color: var(--admin-primary);
+    font-size: 1.02rem;
+    letter-spacing: 0;
+}
+
+.admin-repeat-list {
+    display: grid;
+    gap: 12px;
+}
+
+.admin-repeat-row {
+    display: grid;
+    grid-template-columns: minmax(180px, 1fr) minmax(220px, 1.4fr) 110px auto;
+    gap: 12px;
+    align-items: end;
+    padding: 12px;
+    border: 1px solid var(--admin-border);
+    border-radius: 8px;
+    background: #fff;
+}
+
+.admin-checkbox-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 10px;
+    align-items: stretch;
+}
+
+.admin-checkbox-grid .admin-check {
+    min-height: 42px;
+    margin: 0;
+    padding: 10px 12px;
+    border: 1px solid var(--admin-border);
+    border-radius: 8px;
+    background: #fff;
+}
+
+.admin-checkbox-grid--compact {
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 6px;
+}
+
+.admin-checkbox-grid--compact .admin-check {
+    min-height: 30px;
+    padding: 6px 8px;
+    font-size: 0.82rem;
+    line-height: 1.25;
+    font-weight: 600;
+}
+
+.admin-checkbox-grid--compact .admin-check input {
+    width: 14px;
+    height: 14px;
+}
+
 .admin-form,
 .admin-row {
     display: grid !important;
@@ -583,6 +667,10 @@ input[type="file"] {
 @media (max-width: 900px) {
     .admin-compact-item > summary {
         grid-template-columns: 1fr 1fr;
+    }
+
+    .admin-repeat-row {
+        grid-template-columns: 1fr;
     }
 }
 
