@@ -6,7 +6,7 @@
     <meta name="robots" content="noindex,nofollow">
     <title>Админка TinaBorke.Art</title>
     {% include "_favicon.html" %}
-    <link rel="stylesheet" href="/static/css/style.css?v=8">
+    <link rel="stylesheet" href="/static/css/style.css?v=12">
     <link rel="stylesheet" href="/static/css/admin.css?v=8">
 </head>
 <body class="admin-page">
@@ -58,10 +58,12 @@
                 <label>Имя мастера<input name="master_name" value="{{ site_settings.get('master_name', '') }}"></label>
                 <label>Имя после «от»<input name="master_name_genitive" value="{{ site_settings.get('master_name_genitive', 'Тины Борке') }}" placeholder="Тины Борке"></label>
                 <label>Имя после «о мастере»<input name="master_name_prepositional" value="{{ site_settings.get('master_name_prepositional', 'Тине Борке') }}" placeholder="Тине Борке"></label>
-                <label>Город / адрес<input name="city" value="{{ site_settings.get('city', '') }}"></label>
+                <label class="admin-wide">Город / адрес<input name="city" value="{{ site_settings.get('city', '') }}"></label>
+                <label class="admin-wide">Ссылка на карту<input name="map_url" value="{{ site_settings.get('map_url', '') }}" placeholder="https://yandex.ru/maps/..."></label>
                 <label>Телефон<input name="phone" value="{{ site_settings.get('phone', '') }}"></label>
                 <label>Email<input name="contact_email" value="{{ site_settings.get('contact_email', '') }}"></label>
-                <label class="admin-wide">Telegram<input name="telegram_url" value="{{ site_settings.get('telegram_url', '') }}"></label>
+                <label class="admin-wide">Telegram для записи<input name="telegram_contact_url" value="{{ site_settings.get('telegram_contact_url', '') }}"></label>
+                <label class="admin-wide">Telegram-канал<input name="telegram_channel_url" value="{{ site_settings.get('telegram_channel_url', '') }}"></label>
                 <label class="admin-wide">Авито<input name="social_avito_url" value="{{ site_settings.get('social_avito_url', '') }}"></label>
                 <label class="admin-wide">ВКонтакте<input name="social_vk_url" value="{{ site_settings.get('social_vk_url', '') }}"></label>
                 <label class="admin-wide">TikTok<input name="social_tiktok_url" value="{{ site_settings.get('social_tiktok_url', '') }}"></label>

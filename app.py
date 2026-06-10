@@ -175,7 +175,6 @@ def default_og_image_url() -> str:
 
 def get_social_links(site_settings: dict) -> list[dict]:
     links = [
-        ("Telegram", site_settings.get("telegram_url", "")),
         ("Авито", site_settings.get("social_avito_url", "")),
         ("ВКонтакте", site_settings.get("social_vk_url", "")),
         ("TikTok", site_settings.get("social_tiktok_url", "")),
@@ -427,10 +426,12 @@ class Database:
             "city": "Санкт-Петербург",
             "phone": "+7 999 000-00-00",
             "contact_email": "",
-            "telegram_url": "https://t.me/TinaBorkeMakeUp",
+            "telegram_contact_url": "https://t.me/SPB_Tina_Borke",
+            "telegram_channel_url": "https://t.me/TinaBorkeMakeUp",
             "social_avito_url": "https://www.avito.ru/sankt-peterburg/predlozheniya_uslug/vizazhistmakiyazhpricheskiukladkisvadebnyy_stilist_7398583171",
             "social_vk_url": "",
             "social_tiktok_url": "",
+            "map_url": "",
             "working_hours": "Ежедневно по предварительной записи",
             "area_served": "Санкт-Петербург и районы выезда",
             "about_text": "Я профессиональный визажист-гример. Работаю легко и с любовью, использую качественные продукты и подбираю образ под вашу внешность и настроение.",
@@ -1691,7 +1692,8 @@ async def admin_save_settings(request: Request, _: str = Depends(require_admin))
     form = dict(await request.form())
     allowed = {
         "master_name", "master_name_genitive", "master_name_prepositional",
-        "city", "phone", "telegram_url", "social_avito_url", "social_vk_url", "social_tiktok_url",
+        "city", "map_url", "phone", "telegram_contact_url", "telegram_channel_url",
+        "social_avito_url", "social_vk_url", "social_tiktok_url",
         "working_hours", "area_served", "contact_email", "about_text", "promo_text",
         "homepage_intro_line_1", "homepage_intro_line_2",
         "home_title", "home_description", "blog_title", "blog_description",

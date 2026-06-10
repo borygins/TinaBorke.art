@@ -9,13 +9,14 @@
             {% if site_settings.contact_email %}
             <a href="mailto:{{ site_settings.contact_email }}">{{ site_settings.contact_email }}</a>
             {% endif %}
-            {% if site_settings.telegram_url %}
-            <a href="{{ site_settings.telegram_url }}" target="_blank" rel="noopener">Telegram</a>
+            {% if site_settings.telegram_contact_url %}
+            <a href="{{ site_settings.telegram_contact_url }}" target="_blank" rel="noopener">✈ Telegram</a>
+            {% endif %}
+            {% if site_settings.telegram_channel_url %}
+            <a href="{{ site_settings.telegram_channel_url }}" target="_blank" rel="noopener">📣 Telegram-канал</a>
             {% endif %}
             {% for social in social_links or [] %}
-            {% if social.label != 'Telegram' %}
-            <a href="{{ social.url }}" target="_blank" rel="noopener">{{ social.label }}</a>
-            {% endif %}
+            <a href="{{ social.url }}" target="_blank" rel="noopener">{{ '★ Авито' if social.label == 'Авито' else social.label }}</a>
             {% endfor %}
         </div>
     </div>
