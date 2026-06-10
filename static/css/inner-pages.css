@@ -98,10 +98,10 @@
 }
 
 .service-hero-card h1 {
-    max-width: 820px;
+    max-width: min(100%, 1040px);
     margin-inline: auto;
-    font-size: clamp(2.15rem, 4.4vw, 3.7rem);
-    line-height: 1.12;
+    font-size: clamp(2rem, 4vw, 3.45rem);
+    line-height: 1.08;
 }
 
 .service-hit-badge,

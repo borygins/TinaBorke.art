@@ -13,7 +13,7 @@
     {% if preview_image_url %}<meta property="og:image" content="{{ preview_image_url }}">{% endif %}
     {% include "_favicon.html" %}
     <link rel="stylesheet" href="/static/css/style.css?v=8">
-    <link rel="stylesheet" href="/static/css/inner-pages.css?v=7">
+    <link rel="stylesheet" href="/static/css/inner-pages.css?v=8">
 </head>
 <body class="inner-page service-detail-page">
     {% include "_site_header.html" %}
@@ -29,7 +29,7 @@
                 {% if service.is_hit %}
                 <span class="service-hit-badge">Хит</span>
                 {% endif %}
-                <h1>{{ service_h1 }}</h1>
+                <h1>{{ service_h1|replace('Санкт-Петербург', 'Санкт&#8209;Петербург')|safe }}</h1>
                 <p class="service-lead">{{ service.description }}</p>
                 {% if service.duration or service.price %}
                 <div class="service-price-panel">
