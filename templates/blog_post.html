@@ -12,24 +12,52 @@
     <meta property="og:url" content="{{ canonical_url }}">
     <meta property="og:site_name" content="Визаж & Грим от Тины Борке">
     {% if og_image %}<meta property="og:image" content="{{ og_image }}">{% endif %}
+    {% if not is_indexable %}<meta name="robots" content="noindex, follow">{% endif %}
     {% include "_favicon.html" %}
     <link rel="stylesheet" href="/static/css/style.css?v=12">
-    <link rel="stylesheet" href="/static/css/inner-pages.css?v=3">
+    <link rel="stylesheet" href="/static/css/inner-pages.css?v=9">
 </head>
 <body class="inner-page">
     {% include "_site_header.html" %}
     <main class="content-page inner-content">
-        <nav class="inner-back"><a href="/blog">К блогу</a></nav>
+        <nav class="inner-back"><a href="/blog">К советам и образам</a></nav>
         <article class="article-page">
+            <span class="blog-card__category">{{ post.category }}</span>
+            <h1>{{ post.title }}</h1>
             <time class="article-date" datetime="{{ post.created_at }}">{{ post.created_at|ru_datetime }}</time>
+            {% if post.cover_image %}
+            <img class="article-cover" src="{{ post.cover_image }}" alt="{{ post.cover_alt }}" loading="lazy">
+            {% endif %}
             <div class="article-body">{{ post.text_html|safe }}</div>
             {% if post.photos %}
             <div class="article-gallery">
                 {% for photo in post.photos %}
+                {% if photo.image_path != post.cover_image %}
                 <img src="{{ photo.image_path }}" alt="{{ photo.alt_text or 'Фото к посту' }}" loading="lazy">
+                {% endif %}
                 {% endfor %}
             </div>
             {% endif %}
+            {% if post.related_services %}
+            <section class="article-related-services">
+                <h2>{% if post.related_services|length > 1 %}Подходящие услуги{% else %}Подходящая услуга{% endif %}</h2>
+                <div class="service-related-grid">
+                    {% for service in post.related_services %}
+                    <article class="service-related-card">
+                        <strong>{{ service.title }}</strong>
+                        {% if service.duration %}<span>{{ service.duration }}</span>{% endif %}
+                        {% if service.price %}<span>{{ service.price }}</span>{% endif %}
+                        <a class="btn btn--secondary" href="/uslugi/{{ service.slug }}">Подробнее</a>
+                    </article>
+                    {% endfor %}
+                </div>
+            </section>
+            {% endif %}
+            <section class="article-cta">
+                <h2>Хотите подобрать образ для своего события?</h2>
+                <p>Расскажите о дате, формате и пожеланиях — подберём макияж, причёску или образ под вашу задачу.</p>
+                <a class="btn btn--primary" href="/#booking">Записаться</a>
+            </section>
         </article>
     </main>
     {% include "_site_footer.html" %}

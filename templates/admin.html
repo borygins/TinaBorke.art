@@ -7,7 +7,7 @@
     <title>Админка TinaBorke.Art</title>
     {% include "_favicon.html" %}
     <link rel="stylesheet" href="/static/css/style.css?v=12">
-    <link rel="stylesheet" href="/static/css/admin.css?v=8">
+    <link rel="stylesheet" href="/static/css/admin.css?v=10">
 </head>
 <body class="admin-page">
     <main class="admin-shell">
@@ -25,7 +25,7 @@
             ('services', 'Услуги'),
             ('portfolio', 'Портфолио'),
             ('reviews', 'Отзывы'),
-            ('blog', 'Блог'),
+            ('blog', 'Публикации'),
             ('seo', 'SEO'),
             ('telegram', 'Telegram')
         ] %}
@@ -446,36 +446,135 @@
         </section>
 
         <section class="admin-panel {% if active_tab != 'blog' %}is-hidden{% endif %}" id="blog">
-            <h2>Блог</h2>
-            <form method="post" action="/admin/blog/save" enctype="multipart/form-data" class="admin-form">
-                <label>Адрес страницы<input name="slug" placeholder="Можно оставить пустым"></label>
-                <label>Номер поста в Telegram<input name="telegram_message_id"></label>
-                <label>Дата публикации<input name="created_at" placeholder="2026-06-08 12:00:00"></label>
-                <label>Фото к посту<input type="file" name="images" accept=".jpg,.jpeg,.png,.webp" multiple></label>
-                <label class="admin-wide">Текст поста<textarea name="text_markdown" rows="7" required></textarea></label>
-                <label class="admin-check"><input type="checkbox" name="is_visible" checked> Показывать</label>
-                <button class="btn btn--primary" type="submit">Добавить пост</button>
-            </form>
+            <h2>Публикации: советы и образы</h2>
+            <details class="admin-create-details">
+                <summary>Рубрики публикаций</summary>
+                <form method="post" action="/admin/blog/categories/save" class="admin-form">
+                    <label>Название рубрики<input name="title" placeholder="Например: Подготовка к съемке" required></label>
+                    <label>Порядок<input name="sort_order" type="number" value="100"></label>
+                    <button class="btn btn--primary" type="submit">Добавить рубрику</button>
+                </form>
+                <div class="admin-compact-list admin-compact-list--inside">
+                    {% for category in blog_categories %}
+                    <details class="admin-compact-item">
+                        <summary>
+                            <span class="admin-row-title">{{ category.title }}</span>
+                            <span>{{ category.post_count }} публикаций</span>
+                            <span>Порядок: {{ category.sort_order }}</span>
+                        </summary>
+                        <form method="post" action="/admin/blog/categories/save" class="admin-form admin-form--inside">
+                            <input type="hidden" name="id" value="{{ category.id }}">
+                            <label>Название рубрики<input name="title" value="{{ category.title }}" required></label>
+                            <label>Порядок<input name="sort_order" type="number" value="{{ category.sort_order }}"></label>
+                            <button class="btn btn--primary" type="submit">Сохранить рубрику</button>
+                        </form>
+                        <form method="post" action="/admin/blog/categories/{{ category.id }}/delete" class="admin-delete-form" onsubmit="return confirm('Удалить рубрику? Публикации из нее будут перенесены в базовую рубрику.');">
+                            <button class="btn btn--secondary" type="submit" {% if category.title == 'Образы и заметки' %}disabled{% endif %}>Удалить рубрику</button>
+                        </form>
+                    </details>
+                    {% endfor %}
+                </div>
+            </details>
+            <details class="admin-create-details">
+                <summary>Создать новую публикацию</summary>
+                <form method="post" action="/admin/blog/save" enctype="multipart/form-data" class="admin-form">
+                    <h3 class="admin-form-section-title admin-wide">Основное</h3>
+                    <label class="admin-wide">Заголовок публикации<input name="title" required placeholder="Например: Как подготовиться к макияжу перед фотосессией"></label>
+                    <label>Адрес страницы<input name="slug" placeholder="Можно оставить пустым"></label>
+                    <label>Рубрика
+                        <select name="category">
+                            {% for category in blog_categories %}
+                            <option value="{{ category.title }}">{{ category.title }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                    <label class="admin-wide">Краткое описание<textarea name="excerpt" rows="3"></textarea></label>
+                    <label class="admin-wide">Основной текст<textarea name="text_markdown" rows="8" required></textarea></label>
+
+                    <h3 class="admin-form-section-title admin-wide">SEO</h3>
+                    <label class="admin-wide">SEO title<textarea name="seo_title" rows="2"></textarea></label>
+                    <label class="admin-wide">Meta description<textarea name="seo_description" rows="3"></textarea></label>
+                    <label class="admin-check"><input type="checkbox" name="is_indexable"> Индексировать</label>
+
+                    <h3 class="admin-form-section-title admin-wide">Связанные услуги</h3>
+                    <div class="admin-checkbox-grid admin-checkbox-grid--compact admin-wide">
+                        {% for service in services %}
+                        <label class="admin-check"><input type="checkbox" name="related_service_ids" value="{{ service.id }}"> {{ service.title }}</label>
+                        {% endfor %}
+                    </div>
+
+                    <h3 class="admin-form-section-title admin-wide">Изображения</h3>
+                    <label>Обложка публикации<input type="file" name="cover_image_upload" accept=".jpg,.jpeg,.png,.webp"></label>
+                    <label>Дополнительные фото<input type="file" name="images" accept=".jpg,.jpeg,.png,.webp" multiple></label>
+                    <label class="admin-wide">Alt-описание обложки<textarea name="cover_alt" rows="2"></textarea></label>
+
+                    <h3 class="admin-form-section-title admin-wide">Публикация</h3>
+                    <label>Статус
+                        <select name="status">
+                            <option value="draft">Черновик</option>
+                            <option value="published" selected>Опубликовано</option>
+                        </select>
+                    </label>
+                    <label>Дата публикации<input name="created_at" placeholder="2026-06-08 12:00:00"></label>
+                    <label>Номер поста в Telegram<input name="telegram_message_id"></label>
+                    <button class="btn btn--primary" type="submit">Добавить пост</button>
+                </form>
+            </details>
             <div class="admin-compact-list">
                 {% for post in posts %}
                 <details class="admin-compact-item">
                     <summary>
-                        <span class="admin-row-title">{{ post.text_markdown[:90] or 'Без текста' }}{% if post.text_markdown|length > 90 %}...{% endif %}</span>
+                        <span>{% if post.status == 'published' %}Опубликовано{% else %}Черновик{% endif %}</span>
+                        <span>{{ post.category }}</span>
+                        <span class="admin-row-title">{{ post.title }}</span>
                         <span>{{ post.created_at }}</span>
-                        <span>{{ post.photo_count }} фото</span>
-                        <span>{% if post.is_visible %}Видим{% else %}Скрыт{% endif %}</span>
+                        <span>{% if post.is_indexable %}Индексируется{% else %}Noindex{% endif %}</span>
                     </summary>
-                    <form method="post" action="/admin/blog/save" class="admin-form admin-form--inside">
+                    <form method="post" action="/admin/blog/save" enctype="multipart/form-data" class="admin-form admin-form--inside">
                         <input type="hidden" name="id" value="{{ post.id }}">
+                        <h3 class="admin-form-section-title admin-wide">Основное</h3>
+                        <label class="admin-wide">Заголовок публикации<input name="title" value="{{ post.title }}"></label>
                         <label>Адрес страницы<input name="slug" value="{{ post.slug }}"></label>
-                        <label>Номер в Telegram<input name="telegram_message_id" value="{{ post.telegram_message_id or '' }}"></label>
+                        <label>Рубрика
+                            <select name="category">
+                                {% for category in blog_categories %}
+                                <option value="{{ category.title }}" {% if post.category == category.title %}selected{% endif %}>{{ category.title }}</option>
+                                {% endfor %}
+                            </select>
+                        </label>
+                        {{ text_editor('Краткое описание', 'excerpt', post.excerpt, 3) }}
+                        {{ text_editor('Основной текст', 'text_markdown', post.text_markdown, 7) }}
+
+                        <h3 class="admin-form-section-title admin-wide">SEO</h3>
+                        {{ text_editor('SEO title', 'seo_title', post.seo_title, 3) }}
+                        {{ text_editor('Meta description', 'seo_description', post.seo_description, 4) }}
+                        <label class="admin-check"><input type="checkbox" name="is_indexable" {% if post.is_indexable %}checked{% endif %}> Индексировать</label>
+
+                        <h3 class="admin-form-section-title admin-wide">Связанные услуги</h3>
+                        <div class="admin-checkbox-grid admin-checkbox-grid--compact admin-wide">
+                            {% for service in services %}
+                            <label class="admin-check"><input type="checkbox" name="related_service_ids" value="{{ service.id }}" {% if service.id in post.related_service_ids %}checked{% endif %}> {{ service.title }}</label>
+                            {% endfor %}
+                        </div>
+
+                        <h3 class="admin-form-section-title admin-wide">Изображения</h3>
+                        {% if post.cover_image %}<div class="admin-wide admin-cover-preview"><img src="{{ post.cover_image }}" alt="{{ post.cover_alt }}" loading="lazy"><span>Текущая обложка</span></div>{% endif %}
+                        <label>Обложка публикации<input type="file" name="cover_image_upload" accept=".jpg,.jpeg,.png,.webp"></label>
+                        {{ text_editor('Alt-описание обложки', 'cover_alt', post.cover_alt, 2) }}
+
+                        <h3 class="admin-form-section-title admin-wide">Публикация</h3>
+                        <label>Статус
+                            <select name="status">
+                                <option value="draft" {% if post.status != 'published' %}selected{% endif %}>Черновик</option>
+                                <option value="published" {% if post.status == 'published' %}selected{% endif %}>Опубликовано</option>
+                            </select>
+                        </label>
                         <label>Дата<input name="created_at" value="{{ post.created_at }}"></label>
-                        {{ text_editor('Текст', 'text_markdown', post.text_markdown, 6) }}
-                        <label class="admin-check"><input type="checkbox" name="is_visible" {% if post.is_visible %}checked{% endif %}> Видим</label>
+                        <label>Номер в Telegram<input name="telegram_message_id" value="{{ post.telegram_message_id or '' }}"></label>
                         <button class="btn btn--primary" type="submit">Сохранить пост</button>
                     </form>
                     <form method="post" action="/admin/blog/{{ post.id }}/photos/upload" enctype="multipart/form-data" class="admin-form admin-form--inside">
-                        <label>Фото к посту<input type="file" name="images" accept=".jpg,.jpeg,.png,.webp" multiple required></label>
+                        <label>Дополнительные фото<input type="file" name="images" accept=".jpg,.jpeg,.png,.webp" multiple required></label>
                         <label>Порядок с<input name="sort_order" type="number" value="100"></label>
                         <label class="admin-wide">Описание фото<textarea name="alt_text" rows="2"></textarea></label>
                         <button class="btn btn--primary" type="submit">Прикрепить фото</button>
@@ -513,8 +612,8 @@
                 <input type="hidden" name="tab" value="seo">
                 {{ text_editor('Title главной', 'home_title', site_settings.get('home_title', ''), 3) }}
                 {{ text_editor('Description главной', 'home_description', site_settings.get('home_description', ''), 4) }}
-                {{ text_editor('Title блога', 'blog_title', site_settings.get('blog_title', ''), 3) }}
-                {{ text_editor('Description блога', 'blog_description', site_settings.get('blog_description', ''), 4) }}
+                {{ text_editor('Title раздела «Советы и образы»', 'blog_title', site_settings.get('blog_title', ''), 3) }}
+                {{ text_editor('Description раздела «Советы и образы»', 'blog_description', site_settings.get('blog_description', ''), 4) }}
                 <p class="admin-help admin-wide">Sitemap: <a href="/sitemap.xml" target="_blank">/sitemap.xml</a> · Robots: <a href="/robots.txt" target="_blank">/robots.txt</a>. JSON-LD формируется автоматически.</p>
                 <button class="btn btn--primary" type="submit">Сохранить SEO</button>
             </form>

@@ -119,6 +119,9 @@ class Settings:
 settings = Settings()
 security = HTTPBasic()
 ALLOWED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
+BLOG_CATEGORIES = ("Советы", "Образы и заметки", "Свадьба", "Фотосессии")
+BLOG_DEFAULT_CATEGORY = "Образы и заметки"
+BLOG_DRAFT_TITLE = "Образы и заметки визажиста — требуется заголовок"
 
 def slugify(value: str) -> str:
     """Простой slug для ЧПУ без внешних зависимостей."""
@@ -261,6 +264,40 @@ def get_same_as_links(site_settings: dict) -> list[str]:
     keys = ("telegram_contact_url", "telegram_channel_url", "social_avito_url", "social_vk_url", "social_tiktok_url")
     return [site_settings.get(key, "") for key in keys if site_settings.get(key)]
 
+def normalize_blog_category(value: str) -> str:
+    text = plain_excerpt(value or "", 80)
+    return text or BLOG_DEFAULT_CATEGORY
+
+def normalize_blog_status(value: str) -> str:
+    return "published" if value == "published" else "draft"
+
+def parse_telegram_blog_text(raw_text: str) -> dict:
+    title = ""
+    category = BLOG_DEFAULT_CATEGORY
+    body_lines = []
+    in_body = False
+    for line in (raw_text or "").splitlines():
+        stripped = line.strip()
+        lower = stripped.lower()
+        if lower.startswith("заголовок:"):
+            title = stripped.split(":", 1)[1].strip()
+            continue
+        if lower.startswith("рубрика:"):
+            category = normalize_blog_category(stripped.split(":", 1)[1].strip())
+            continue
+        if lower.startswith("текст:"):
+            in_body = True
+            rest = stripped.split(":", 1)[1].strip()
+            if rest:
+                body_lines.append(rest)
+            continue
+        if in_body or not lower.startswith(("заголовок:", "рубрика:")):
+            body_lines.append(line)
+    body = "\n".join(body_lines).strip()
+    if not body:
+        body = raw_text.strip()
+    return {"title": title, "category": category, "text": body}
+
 def require_admin(credentials: HTTPBasicCredentials = Depends(security)):
     expected_username = settings.ADMIN_USERNAME
     expected_password = settings.ADMIN_PASSWORD
@@ -377,12 +414,24 @@ class Database:
                         slug TEXT NOT NULL UNIQUE,
                         text_html TEXT NOT NULL DEFAULT '',
                         text_markdown TEXT NOT NULL DEFAULT '',
+                        excerpt TEXT NOT NULL DEFAULT '',
+                        category TEXT NOT NULL DEFAULT 'Образы и заметки',
                         first_image TEXT,
+                        cover_image TEXT,
+                        cover_alt TEXT NOT NULL DEFAULT '',
                         created_at TEXT NOT NULL,
                         is_visible INTEGER NOT NULL DEFAULT 1,
                         is_deleted INTEGER NOT NULL DEFAULT 0,
+                        status TEXT NOT NULL DEFAULT 'draft',
+                        is_indexable INTEGER NOT NULL DEFAULT 0,
                         seo_title TEXT NOT NULL DEFAULT '',
                         seo_description TEXT NOT NULL DEFAULT ''
+                    );
+                    CREATE TABLE IF NOT EXISTS blog_categories (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        title TEXT NOT NULL UNIQUE,
+                        slug TEXT NOT NULL UNIQUE,
+                        sort_order INTEGER NOT NULL DEFAULT 0
                     );
                     CREATE TABLE IF NOT EXISTS blog_photos (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -469,6 +518,12 @@ class Database:
         await ensure_column("blog_photos", "alt_text", "TEXT NOT NULL DEFAULT ''")
         await ensure_column("blog_photos", "created_at", "TEXT NOT NULL DEFAULT ''")
         await ensure_column("blog_posts", "is_deleted", "INTEGER NOT NULL DEFAULT 0")
+        await ensure_column("blog_posts", "excerpt", "TEXT NOT NULL DEFAULT ''")
+        await ensure_column("blog_posts", "category", "TEXT NOT NULL DEFAULT 'Образы и заметки'")
+        await ensure_column("blog_posts", "cover_image", "TEXT")
+        await ensure_column("blog_posts", "cover_alt", "TEXT NOT NULL DEFAULT ''")
+        await ensure_column("blog_posts", "status", "TEXT NOT NULL DEFAULT 'draft'")
+        await ensure_column("blog_posts", "is_indexable", "INTEGER NOT NULL DEFAULT 0")
         await ensure_column("portfolio_categories", "is_deleted", "INTEGER NOT NULL DEFAULT 0")
         await db.executescript("""
             CREATE TABLE IF NOT EXISTS service_faq (
@@ -496,6 +551,12 @@ class Database:
                 FOREIGN KEY(service_id) REFERENCES services(id),
                 FOREIGN KEY(post_id) REFERENCES blog_posts(id)
             );
+            CREATE TABLE IF NOT EXISTS blog_categories (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL UNIQUE,
+                slug TEXT NOT NULL UNIQUE,
+                sort_order INTEGER NOT NULL DEFAULT 0
+            );
         """)
 
     async def seed_defaults(self, db):
@@ -520,8 +581,8 @@ class Database:
             "homepage_intro_line_2": "Профессиональный визажист-гример в Санкт-Петербурге",
             "home_title": "Визажист в Санкт-Петербурге Тина Борке",
             "home_description": "Профессиональный визажист-гример в Санкт-Петербурге: лифтинг макияж, свадебные образы, грим, укладки и обучение.",
-            "blog_title": "Блог визажиста Тины Борке",
-            "blog_description": "Советы по макияжу, новости, образы и посты из Telegram-канала Тины Борке.",
+            "blog_title": "Советы по макияжу и образы — визажист Тина Борке",
+            "blog_description": "Полезные советы по макияжу, свадебным образам, фотосессиям и подготовке к важным событиям от визажиста Тины Борке в Санкт-Петербурге.",
             "telegram_import_last_run": "",
             "telegram_import_last_count": "0",
             "telegram_import_last_error": "",
@@ -558,6 +619,25 @@ class Database:
         await db.execute("UPDATE services SET service_group = 'additional' WHERE slug IN ('makiyazh-dlya-fotosessii', 'obuchenie-makiyazhu')")
         await db.execute("UPDATE services SET service_includes = ? WHERE service_includes = ''", (default_service_includes,))
         await db.execute("UPDATE services SET suitable_for = ? WHERE suitable_for = ''", (default_suitable_for,))
+        await db.execute("UPDATE blog_posts SET category = ? WHERE category IS NULL OR category = ''", (BLOG_DEFAULT_CATEGORY,))
+        await db.execute("UPDATE blog_posts SET status = 'published' WHERE status = 'draft' AND is_visible = 1 AND is_deleted = 0")
+        await db.execute("UPDATE blog_posts SET excerpt = seo_description WHERE excerpt = '' AND seo_description != ''")
+        await db.execute("UPDATE blog_posts SET excerpt = substr(text_markdown, 1, 180) WHERE excerpt = ''")
+        await db.execute("UPDATE blog_posts SET cover_image = COALESCE(first_image, cover_image) WHERE cover_image IS NULL OR cover_image = ''")
+        await db.execute("UPDATE blog_posts SET cover_alt = title WHERE cover_alt = ''")
+        for index, title in enumerate(BLOG_CATEGORIES, start=1):
+            await db.execute("""
+                INSERT OR IGNORE INTO blog_categories (title, slug, sort_order)
+                VALUES (?, ?, ?)
+            """, (title, slugify(title), index * 10))
+        async with db.execute("SELECT DISTINCT category FROM blog_posts WHERE category IS NOT NULL AND category != ''") as cursor:
+            existing_blog_categories = await cursor.fetchall()
+        for row in existing_blog_categories:
+            title = normalize_blog_category(row[0])
+            await db.execute("""
+                INSERT OR IGNORE INTO blog_categories (title, slug, sort_order)
+                VALUES (?, ?, 100)
+            """, (title, slugify(title)))
 
         default_categories = [
             ("Свадебный макияж", "svadebnyy-makiyazh", "Нежные и стойкие свадебные образы для утра невесты и фотосессии.", 10),
@@ -1038,16 +1118,108 @@ class Database:
     async def delete_portfolio_photo(self, photo_id: int):
         await self.execute("DELETE FROM portfolio_photos WHERE id = ?", (photo_id,))
 
-    async def get_blog_posts(self, visible_only: bool = True, include_deleted: bool = False) -> list[dict]:
+    async def unique_blog_category_slug(self, title: str, category_id: Optional[int] = None) -> str:
+        base_slug = slugify(title)
+        slug = base_slug
+        counter = 2
+        while True:
+            existing = await self.fetch_one("SELECT id FROM blog_categories WHERE slug = ?", (slug,))
+            if not existing or (category_id and existing["id"] == category_id):
+                return slug
+            slug = f"{base_slug}-{counter}"
+            counter += 1
+
+    async def get_blog_categories(self) -> list[dict]:
+        return await self.fetch_all("""
+            SELECT blog_categories.*,
+                   COUNT(CASE WHEN blog_posts.is_deleted = 0 THEN blog_posts.id END) AS post_count
+            FROM blog_categories
+            LEFT JOIN blog_posts ON blog_posts.category = blog_categories.title
+            GROUP BY blog_categories.id
+            ORDER BY blog_categories.sort_order, blog_categories.title
+        """)
+
+    async def ensure_blog_category(self, title: str):
+        normalized_title = normalize_blog_category(title)
+        slug = await self.unique_blog_category_slug(normalized_title)
+        await self.execute("""
+            INSERT OR IGNORE INTO blog_categories (title, slug, sort_order)
+            VALUES (?, ?, 100)
+        """, (normalized_title, slug))
+
+    async def save_blog_category(self, form: dict):
+        category_id = int(form["id"]) if form.get("id") else None
+        title = normalize_blog_category(form.get("title"))
+        sort_order = int(form.get("sort_order") or 0)
+        duplicate = await self.fetch_one(
+            "SELECT id FROM blog_categories WHERE title = ? AND (? IS NULL OR id != ?)",
+            (title, category_id, category_id),
+        )
+        if duplicate:
+            return
+        slug = await self.unique_blog_category_slug(title, category_id)
+        if category_id:
+            existing = await self.fetch_one("SELECT title FROM blog_categories WHERE id = ?", (category_id,))
+            await self.execute("""
+                UPDATE blog_categories
+                SET title=?, slug=?, sort_order=?
+                WHERE id=?
+            """, (title, slug, sort_order, category_id))
+            if existing and existing["title"] != title:
+                await self.execute(
+                    "UPDATE blog_posts SET category = ? WHERE category = ?",
+                    (title, existing["title"]),
+                )
+        else:
+            await self.execute("""
+                INSERT INTO blog_categories (title, slug, sort_order)
+                VALUES (?, ?, ?)
+            """, (title, slug, sort_order))
+
+    async def delete_blog_category(self, category_id: int):
+        category = await self.fetch_one("SELECT title FROM blog_categories WHERE id = ?", (category_id,))
+        if not category or category["title"] == BLOG_DEFAULT_CATEGORY:
+            return
+        await self.ensure_blog_category(BLOG_DEFAULT_CATEGORY)
+        await self.execute(
+            "UPDATE blog_posts SET category = ? WHERE category = ?",
+            (BLOG_DEFAULT_CATEGORY, category["title"]),
+        )
+        await self.execute("DELETE FROM blog_categories WHERE id = ?", (category_id,))
+
+    def normalize_blog_post(self, post: dict) -> dict:
+        text = post.get("text_markdown", "")
+        post["category"] = normalize_blog_category(post.get("category"))
+        post["title"] = (post.get("title") or "").strip() or BLOG_DRAFT_TITLE
+        post["excerpt"] = truncate_meta(post.get("excerpt"), 180, text)
+        post["seo_title"] = truncate_meta(post.get("seo_title"), 70, f"{post['title']} — Тина Борке")
+        post["seo_description"] = truncate_meta(post.get("seo_description"), 160, post.get("excerpt") or text)
+        post["cover_image"] = post.get("cover_image") or post.get("preview_image") or post.get("first_image") or ""
+        if post["cover_image"] and not Path(post["cover_image"].lstrip("/")).exists():
+            post["cover_image"] = ""
+        post["cover_alt"] = post.get("cover_alt") or f"{post['title']} — материал визажиста Тины Борке"
+        post["status"] = normalize_blog_status(post.get("status"))
+        post["is_indexable"] = 1 if int(post.get("is_indexable") or 0) else 0
+        return post
+
+    async def get_blog_posts(
+        self,
+        visible_only: bool = True,
+        include_deleted: bool = False,
+        indexable_only: bool = False,
+    ) -> list[dict]:
         clauses = []
         if visible_only:
             clauses.append("blog_posts.is_visible = 1")
+            clauses.append("blog_posts.status = 'published'")
         if not include_deleted:
             clauses.append("blog_posts.is_deleted = 0")
+        if indexable_only:
+            clauses.append("blog_posts.is_indexable = 1")
         where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
         posts = await self.fetch_all(f"""
             SELECT blog_posts.*,
-                   COALESCE(blog_posts.first_image, (
+                   COALESCE(blog_posts.cover_image, blog_posts.first_image, (
                        SELECT image_path FROM blog_photos
                        WHERE blog_photos.post_id = blog_posts.id
                        ORDER BY sort_order, id
@@ -1059,33 +1231,48 @@ class Database:
             ORDER BY blog_posts.created_at DESC, blog_posts.id DESC
         """)
         for post in posts:
-            post["seo_title"] = plain_excerpt(post.get("text_markdown", ""), 60)
-            post["seo_description"] = plain_excerpt(post.get("text_markdown", ""))
+            self.normalize_blog_post(post)
         return posts
 
     async def get_blog_post(self, slug: str) -> Optional[dict]:
         post = await self.fetch_one(
-            "SELECT * FROM blog_posts WHERE slug = ? AND is_visible = 1 AND is_deleted = 0",
+            "SELECT * FROM blog_posts WHERE slug = ? AND is_visible = 1 AND is_deleted = 0 AND status = 'published'",
             (slug,),
         )
         if post:
-            post["seo_title"] = plain_excerpt(post.get("text_markdown", ""), 60)
-            post["seo_description"] = plain_excerpt(post.get("text_markdown", ""))
             post["photos"] = await self.fetch_all("SELECT * FROM blog_photos WHERE post_id = ? ORDER BY sort_order, id", (post["id"],))
+            post["preview_image"] = post.get("cover_image") or post.get("first_image") or (post["photos"][0]["image_path"] if post["photos"] else "")
+            post["related_services"] = await self.get_blog_related_services(post["id"])
+            self.normalize_blog_post(post)
         return post
 
     async def get_blog_post_by_id(self, post_id: int) -> Optional[dict]:
         post = await self.fetch_one("SELECT * FROM blog_posts WHERE id = ? AND is_deleted = 0", (post_id,))
         if post:
-            post["seo_title"] = plain_excerpt(post.get("text_markdown", ""), 60)
-            post["seo_description"] = plain_excerpt(post.get("text_markdown", ""))
             post["photos"] = await self.fetch_all("SELECT * FROM blog_photos WHERE post_id = ? ORDER BY sort_order, id", (post["id"],))
+            post["preview_image"] = post.get("cover_image") or post.get("first_image") or (post["photos"][0]["image_path"] if post["photos"] else "")
+            related_ids = await self.fetch_all(
+                "SELECT service_id FROM service_related_posts WHERE post_id = ? ORDER BY sort_order, id",
+                (post_id,),
+            )
+            post["related_service_ids"] = [row["service_id"] for row in related_ids]
+            self.normalize_blog_post(post)
         return post
+
+    async def get_blog_related_services(self, post_id: int) -> list[dict]:
+        return await self.fetch_all("""
+            SELECT services.*
+            FROM service_related_posts links
+            JOIN services ON services.id = links.service_id
+            WHERE links.post_id = ? AND services.is_active = 1
+            ORDER BY links.sort_order, services.sort_order, services.id
+        """, (post_id,))
 
     async def save_blog_post(self, form: dict):
         post_id = form.get("id")
         text_markdown = form.get("text_markdown") or ""
-        title = (form.get("title") or plain_excerpt(text_markdown, 70) or "Пост блога").strip()
+        title_from_form = (form.get("title") or "").strip()
+        title = title_from_form or BLOG_DRAFT_TITLE
         slug = slugify(form.get("slug") or title)
         if post_id and not form.get("slug"):
             existing = await self.fetch_one("SELECT slug FROM blog_posts WHERE id = ?", (post_id,))
@@ -1096,6 +1283,22 @@ class Database:
             existing_image = await self.fetch_one("SELECT first_image FROM blog_posts WHERE id = ?", (post_id,))
             if existing_image:
                 first_image = existing_image["first_image"]
+        cover_image = form.get("cover_image") or first_image
+        if post_id and not cover_image:
+            existing_cover = await self.fetch_one("SELECT cover_image FROM blog_posts WHERE id = ?", (post_id,))
+            if existing_cover:
+                cover_image = existing_cover["cover_image"]
+        category = normalize_blog_category(form.get("category"))
+        status = normalize_blog_status(form.get("status"))
+        is_visible = 1 if form.get("is_visible") == "on" or status == "published" else 0
+        is_indexable = 1 if form.get("is_indexable") == "on" else 0
+        if not title_from_form or len(plain_excerpt(text_markdown, 500)) < 300 or status != "published":
+            is_indexable = 0
+        if not title_from_form:
+            status = "draft"
+            is_visible = 0
+        excerpt = truncate_meta(form.get("excerpt"), 180, text_markdown)
+        await self.ensure_blog_category(category)
         text_html = "<br>".join(html.escape(line) for line in text_markdown.splitlines())
         values = (
             form.get("telegram_message_id") or None,
@@ -1103,29 +1306,62 @@ class Database:
             slug,
             text_html,
             text_markdown,
+            excerpt,
+            category,
             first_image,
+            cover_image,
+            form.get("cover_alt") or f"{title} — материал визажиста Тины Борке",
             form.get("created_at") or get_moscow_time().strftime("%Y-%m-%d %H:%M:%S"),
-            1 if form.get("is_visible") == "on" else 0,
-            plain_excerpt(text_markdown, 60) or title[:60],
-            plain_excerpt(text_markdown),
+            is_visible,
+            status,
+            is_indexable,
+            truncate_meta(form.get("seo_title"), 70, f"{title} — Тина Борке"),
+            truncate_meta(form.get("seo_description"), 160, excerpt or text_markdown),
         )
         if post_id:
             await self.execute("""
                 UPDATE blog_posts
-                SET telegram_message_id=?, title=?, slug=?, text_html=?, text_markdown=?, first_image=?,
-                    created_at=?, is_visible=?, seo_title=?, seo_description=?
+                SET telegram_message_id=?, title=?, slug=?, text_html=?, text_markdown=?, excerpt=?, category=?, first_image=?,
+                    cover_image=?, cover_alt=?, created_at=?, is_visible=?, status=?, is_indexable=?, seo_title=?, seo_description=?
                 WHERE id=?
             """, values + (post_id,))
-            return int(post_id)
+            saved_id = int(post_id)
         else:
-            return await self.execute("""
+            saved_id = await self.execute("""
                 INSERT INTO blog_posts
-                (telegram_message_id, title, slug, text_html, text_markdown, first_image, created_at, is_visible, seo_title, seo_description)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (telegram_message_id, title, slug, text_html, text_markdown, excerpt, category, first_image, cover_image, cover_alt,
+                 created_at, is_visible, status, is_indexable, seo_title, seo_description)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, values)
+        await self.save_blog_related_services(saved_id, form_getlist(form, "related_service_ids"))
+        return saved_id
+
+    async def save_blog_related_services(self, post_id: int, service_ids: list):
+        await self.execute("DELETE FROM service_related_posts WHERE post_id = ?", (post_id,))
+        seen = set()
+        for index, service_id in enumerate(service_ids):
+            if not service_id:
+                continue
+            try:
+                service_id_int = int(service_id)
+            except (TypeError, ValueError):
+                continue
+            if service_id_int in seen:
+                continue
+            seen.add(service_id_int)
+            await self.execute("""
+                INSERT INTO service_related_posts (service_id, post_id, sort_order)
+                VALUES (?, ?, ?)
+            """, (service_id_int, post_id, index * 10))
 
     async def toggle_blog_post(self, post_id: int):
-        await self.execute("UPDATE blog_posts SET is_visible = CASE is_visible WHEN 1 THEN 0 ELSE 1 END WHERE id = ? AND is_deleted = 0", (post_id,))
+        await self.execute("""
+            UPDATE blog_posts
+            SET is_visible = CASE is_visible WHEN 1 THEN 0 ELSE 1 END,
+                status = CASE is_visible WHEN 1 THEN 'draft' ELSE 'published' END,
+                is_indexable = CASE is_visible WHEN 1 THEN 0 ELSE is_indexable END
+            WHERE id = ? AND is_deleted = 0
+        """, (post_id,))
 
     async def delete_blog_post(self, post_id: int):
         await self.execute("UPDATE blog_posts SET is_deleted = 1, is_visible = 0 WHERE id = ?", (post_id,))
@@ -1241,7 +1477,10 @@ class Database:
 
                 for post_data in grouped_posts.values():
                     message_id = post_data["message_id"]
-                    text = post_data["text"]
+                    parsed = parse_telegram_blog_text(post_data["text"])
+                    text = parsed["text"]
+                    has_title = bool(parsed["title"])
+                    is_full_article = has_title and len(plain_excerpt(text, 1000)) >= 300
                     if not text and not post_data["photos"]:
                         continue
                     exists = await self.fetch_one("SELECT id FROM blog_posts WHERE telegram_message_id = ?", (message_id,))
@@ -1249,10 +1488,15 @@ class Database:
                         continue
                     post_id = await self.save_blog_post({
                         "telegram_message_id": message_id,
-                        "slug": f"telegram-{post_data['slug_id']}",
+                        "title": parsed["title"] or BLOG_DRAFT_TITLE,
+                        "slug": f"telegram-{post_data['slug_id']}" if not parsed["title"] else slugify(parsed["title"]),
+                        "category": parsed["category"],
+                        "excerpt": plain_excerpt(text, 180),
                         "text_markdown": text,
                         "created_at": datetime.fromtimestamp(post_data["date"]).strftime("%Y-%m-%d %H:%M:%S"),
-                        "is_visible": "on",
+                        "status": "published" if is_full_article else "draft",
+                        "is_visible": "on" if is_full_article else "",
+                        "is_indexable": "on" if is_full_article else "",
                     })
                     first_image = None
                     for index, file_id in enumerate(post_data["photos"], start=1):
@@ -1262,7 +1506,13 @@ class Database:
                                 first_image = image_path
                             await self.add_blog_photo(post_id, image_path, "Фото из Telegram", index)
                     if first_image:
-                        await self.execute("UPDATE blog_posts SET first_image = ? WHERE id = ?", (first_image, post_id))
+                        await self.execute("""
+                            UPDATE blog_posts
+                            SET first_image = ?,
+                                cover_image = COALESCE(NULLIF(cover_image, ''), ?),
+                                cover_alt = CASE WHEN cover_alt = '' THEN title ELSE cover_alt END
+                            WHERE id = ?
+                        """, (first_image, first_image, post_id))
                     imported += 1
             await self.set_telegram_import_status(imported, "" if imported else "Новых channel_post в getUpdates не найдено. Bot API не отдаёт старую историю канала.")
         except Exception as exc:
@@ -1567,12 +1817,19 @@ async def about_page(request: Request):
     })
 
 @app.get("/blog", response_class=HTMLResponse)
-async def blog_index(request: Request):
+async def blog_index(request: Request, category: Optional[str] = None):
     site_settings = await db.get_settings()
     posts = await db.get_blog_posts()
+    blog_categories = await db.get_blog_categories()
+    active_category = ""
+    if category:
+        category_map = {item["slug"]: item["title"] for item in blog_categories}
+        active_category = category_map.get(category, "")
+        if active_category:
+            posts = [post for post in posts if post.get("category") == active_category]
     canonical_url = absolute_url("/blog", request)
-    seo_title = truncate_meta(site_settings.get("blog_title"), 60, "Блог визажиста Тины Борке — советы, работы и новости")
-    seo_description = truncate_meta(site_settings.get("blog_description"), 160, "Советы по макияжу, новости, работы и посты визажиста Тины Борке.")
+    seo_title = "Советы по макияжу и образы — визажист Тина Борке"
+    seo_description = "Полезные советы по макияжу, свадебным образам, фотосессиям и подготовке к важным событиям от визажиста Тины Борке в Санкт-Петербурге."
     og_image = ""
     if posts:
         og_image = absolute_asset_url(posts[0].get("preview_image", ""), request)
@@ -1581,6 +1838,8 @@ async def blog_index(request: Request):
         "site_settings": site_settings,
         "social_links": get_social_links(site_settings),
         "posts": posts,
+        "blog_categories": blog_categories,
+        "active_category": active_category,
         "canonical_url": canonical_url,
         "seo_title": seo_title,
         "seo_description": seo_description,
@@ -1597,14 +1856,18 @@ async def blog_post(request: Request, slug: str):
     if not post:
         raise HTTPException(status_code=404, detail="Пост не найден")
     canonical_url = absolute_url(f"/blog/{slug}", request)
-    seo_title = truncate_meta(post.get("seo_title") or post.get("text_markdown", ""), 60, "Пост блога визажиста Тины Борке")
+    seo_title = truncate_meta(post.get("seo_title"), 70, f"{post.get('title', BLOG_DRAFT_TITLE)} — Тина Борке")
     seo_description = truncate_meta(post.get("seo_description") or post.get("text_markdown", ""), 160, "Пост блога визажиста Тины Борке.")
-    post_images = [absolute_asset_url(photo.get("image_path", ""), request) for photo in post.get("photos", [])]
+    post_images = []
+    cover_url = absolute_asset_url(post.get("cover_image", ""), request)
+    if cover_url:
+        post_images.append(cover_url)
+    post_images.extend(absolute_asset_url(photo.get("image_path", ""), request) for photo in post.get("photos", []))
     post_images = [image for image in post_images if image]
     article_ld = {
         "@context": "https://schema.org",
         "@type": "BlogPosting",
-        "headline": seo_title,
+        "headline": post.get("title", seo_title),
         "datePublished": post["created_at"],
         "dateModified": post["created_at"],
         "description": seo_description,
@@ -1615,8 +1878,8 @@ async def blog_post(request: Request, slug: str):
     }
     breadcrumbs = build_breadcrumbs([
         {"name": "Главная", "url": "/"},
-        {"name": "Блог", "url": "/blog"},
-        {"name": seo_title, "url": f"/blog/{slug}"},
+        {"name": "Советы и образы", "url": "/blog"},
+        {"name": post.get("title", seo_title), "url": f"/blog/{slug}"},
     ], request)
     return templates.TemplateResponse(request, "blog_post.html", {
         "site_settings": site_settings,
@@ -1629,6 +1892,7 @@ async def blog_post(request: Request, slug: str):
         "og_description": seo_description,
         "og_type": "article",
         "og_image": post_images[0] if post_images else "",
+        "is_indexable": post.get("is_indexable"),
         "json_ld": json_ld_dump([article_ld, breadcrumbs]),
     })
 
@@ -1797,7 +2061,7 @@ async def favicon_ico():
 @app.get("/sitemap.xml", response_class=PlainTextResponse)
 async def sitemap_xml(request: Request):
     services = await db.get_services()
-    posts = await db.get_blog_posts()
+    posts = await db.get_blog_posts(indexable_only=True)
     categories = await db.get_portfolio_categories()
     today = get_moscow_time().strftime("%Y-%m-%d")
     urls = [
@@ -1899,7 +2163,8 @@ async def admin_dashboard(request: Request, tab: str = "settings", _: str = Depe
     for post in posts:
         full_post = await db.get_blog_post_by_id(post["id"])
         post["photos"] = full_post.get("photos", []) if full_post else []
-        post["admin_label"] = plain_excerpt(post.get("text_markdown", ""), 90) or post.get("title") or f"Пост {post['id']}"
+        post["related_service_ids"] = full_post.get("related_service_ids", []) if full_post else []
+        post["admin_label"] = post.get("title") or plain_excerpt(post.get("text_markdown", ""), 90) or f"Публикация {post['id']}"
     services = await db.get_services(active_only=False)
     for service in services:
         service["faq"] = await db.get_service_faq(service["id"], active_only=False)
@@ -1921,6 +2186,7 @@ async def admin_dashboard(request: Request, tab: str = "settings", _: str = Depe
         "posts": posts,
         "portfolio_categories": await db.get_portfolio_categories(active_only=False),
         "portfolio_photos": await db.get_portfolio_photos(active_only=False, limit=30),
+        "blog_categories": await db.get_blog_categories(),
     })
 
 @app.post("/admin/settings")
@@ -2014,17 +2280,42 @@ async def admin_delete_portfolio_photo(photo_id: int, _: str = Depends(require_a
 @app.post("/admin/blog/save")
 async def admin_save_blog(request: Request, _: str = Depends(require_admin)):
     form_data = await request.form()
-    post_id = await db.save_blog_post(dict(form_data))
+    form_payload = dict(form_data)
+    form_payload["related_service_ids"] = form_data.getlist("related_service_ids")
+    cover_file = form_data.get("cover_image_upload")
+    if getattr(cover_file, "filename", ""):
+        form_payload["cover_image"] = await save_upload(cover_file, "static/blog_photos")
+    post_id = await db.save_blog_post(form_payload)
+    first_uploaded_image = None
     for index, image in enumerate(form_data.getlist("images")):
         if not getattr(image, "filename", ""):
             continue
         image_path = await save_upload(image, "static/blog_photos")
+        if first_uploaded_image is None:
+            first_uploaded_image = image_path
         await db.add_blog_photo(
             post_id,
             image_path,
-            "Фото к посту",
+            form_payload.get("cover_alt") or "Фото к публикации",
             index + 1,
         )
+    if first_uploaded_image:
+        await db.execute("""
+            UPDATE blog_posts
+            SET first_image = COALESCE(NULLIF(first_image, ''), ?),
+                cover_image = COALESCE(NULLIF(cover_image, ''), ?)
+            WHERE id = ?
+        """, (first_uploaded_image, first_uploaded_image, post_id))
+    return RedirectResponse("/admin?tab=blog", status_code=303)
+
+@app.post("/admin/blog/categories/save")
+async def admin_save_blog_category(request: Request, _: str = Depends(require_admin)):
+    await db.save_blog_category(dict(await request.form()))
+    return RedirectResponse("/admin?tab=blog", status_code=303)
+
+@app.post("/admin/blog/categories/{category_id}/delete")
+async def admin_delete_blog_category(category_id: int, _: str = Depends(require_admin)):
+    await db.delete_blog_category(category_id)
     return RedirectResponse("/admin?tab=blog", status_code=303)
 
 @app.post("/admin/blog/{post_id}/photos/upload")

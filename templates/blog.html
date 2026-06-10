@@ -14,25 +14,41 @@
     {% if og_image %}<meta property="og:image" content="{{ og_image }}">{% endif %}
     {% include "_favicon.html" %}
     <link rel="stylesheet" href="/static/css/style.css?v=12">
-    <link rel="stylesheet" href="/static/css/inner-pages.css?v=5">
+    <link rel="stylesheet" href="/static/css/inner-pages.css?v=11">
 </head>
-<body class="inner-page">
+<body class="inner-page blog-page">
     {% include "_site_header.html" %}
     <main class="content-page inner-content">
         <section class="inner-hero">
-            <h1>Блог</h1>
-            <p>{{ site_settings.blog_description }}</p>
+            <h1>Советы и образы</h1>
+            <p>Полезные материалы о макияже, причёсках, свадебных образах и подготовке к важным событиям.</p>
         </section>
+        <nav class="blog-tabs" aria-label="Рубрики публикаций">
+            <a href="/blog" class="{% if not active_category %}is-active{% endif %}">Все</a>
+            {% for category in blog_categories %}
+            <a href="/blog?category={{ category.slug }}" class="{% if active_category == category.title %}is-active{% endif %}">{{ category.title }}</a>
+            {% endfor %}
+        </nav>
         <div class="blog-grid">
             {% for post in posts %}
             <article class="blog-card">
-                {% if post.preview_image %}<img class="blog-card__image" src="{{ post.preview_image }}" alt="Фото к посту" loading="lazy">{% endif %}
-                <p>{{ post.text_markdown[:240] }}{% if post.text_markdown|length > 240 %}...{% endif %}</p>
-                <a class="btn btn--primary" href="/blog/{{ post.slug }}">Читать далее</a>
-                <time class="blog-card__date" datetime="{{ post.created_at }}">{{ post.created_at|ru_datetime }}</time>
+                <div class="blog-card__media">
+                    {% if post.cover_image or post.preview_image %}
+                    <img class="blog-card__image" src="{{ post.cover_image or post.preview_image }}" alt="{{ post.cover_alt }}" loading="lazy">
+                    {% else %}
+                    <div class="blog-card__placeholder">Советы и образы</div>
+                    {% endif %}
+                </div>
+                <div class="blog-card__body">
+                    <span class="blog-card__category">{{ post.category }}</span>
+                    <h2>{{ post.title }}</h2>
+                    <p>{{ post.excerpt }}</p>
+                    <time class="blog-card__date" datetime="{{ post.created_at }}">{{ post.created_at|ru_datetime }}</time>
+                    <a class="btn btn--primary" href="/blog/{{ post.slug }}">Читать</a>
+                </div>
             </article>
             {% else %}
-            <p class="blog-empty">Новости скоро появятся. А пока можно перейти в Telegram-канал мастера.</p>
+            <p class="blog-empty">Скоро здесь появятся советы по макияжу, истории образов и материалы для подготовки к важным событиям.</p>
             {% endfor %}
         </div>
     </main>
