@@ -174,10 +174,13 @@ TELEGRAM_CHANNEL_ID=
 - редактируемые SEO-поля услуг;
 - редактируемые SEO-поля постов;
 - canonical URL;
-- Open Graph теги на главной и постах;
-- JSON-LD `BeautySalon` на главной;
+- Open Graph теги на публичных страницах;
+- JSON-LD `BeautySalon` / `LocalBusiness` на главной;
 - JSON-LD `Service` на страницах услуг;
-- JSON-LD `Article` на страницах блога;
+- JSON-LD `BlogPosting` на страницах блога;
+- JSON-LD `BreadcrumbList` для вложенных страниц;
+- JSON-LD `ImageObject` для портфолио;
+- JSON-LD `FAQPage` для услуг с FAQ;
 - автоматический `sitemap.xml`;
 - `robots.txt` с запретом `/admin`;
 - заголовок `X-Robots-Tag: noindex, nofollow` для `/admin`;
@@ -189,6 +192,135 @@ TELEGRAM_CHANNEL_ID=
 /robots.txt
 /sitemap.xml
 ```
+
+## Technical SEO
+
+### Sitemap
+
+Sitemap доступен по адресу:
+
+```text
+/sitemap.xml
+```
+
+Он формируется динамически из SQLite-базы и настроек админки. В него попадают только публичные страницы:
+
+- главная `/`;
+- страница о мастере `/about`;
+- портфолио `/portfolio`;
+- активные и не удаленные разделы портфолио `/portfolio/{category_slug}`;
+- блог `/blog`;
+- видимые и не удаленные посты `/blog/{slug}`;
+- активные услуги `/uslugi/{slug}`.
+
+В sitemap не добавляются `/admin`, `/api`, `/static`, скрытые услуги, скрытые или удаленные посты.
+
+### Robots.txt
+
+Robots доступен по адресу:
+
+```text
+/robots.txt
+```
+
+Он закрывает служебные разделы:
+
+```text
+Disallow: /admin
+Disallow: /login
+Disallow: /logout
+```
+
+И содержит ссылку на sitemap:
+
+```text
+Sitemap: https://example.ru/sitemap.xml
+```
+
+### BASE_URL
+
+На продакшене обязательно задайте настоящий HTTPS-домен:
+
+```env
+BASE_URL=https://example.ru
+```
+
+Если `BASE_URL` не задан, приложение строит абсолютные URL от host текущего запроса. Для продакшена лучше не полагаться на fallback, чтобы canonical, sitemap, robots и Open Graph всегда указывали на основной домен.
+
+### Title и Description
+
+SEO title и description настраиваются:
+
+- главная: вкладка админки с SEO-полями главной;
+- блог: SEO-поля блога в админке;
+- услуги: поля «Заголовок для поиска» и «Описание для поиска» в карточке услуги;
+- посты блога: автоматически из текста поста, если ручные SEO-поля пустые;
+- портфолио и категории: из названия и описания разделов.
+
+Если поле пустое, сайт формирует безопасный fallback, чтобы не выводить пустой `<title>` или пустой `meta description`.
+
+### Canonical
+
+Canonical добавлен на публичные страницы:
+
+- `/`;
+- `/about`;
+- `/portfolio`;
+- `/portfolio/{category_slug}`;
+- `/blog`;
+- `/blog/{slug}`;
+- `/uslugi/{slug}`.
+
+Проверка вручную: открыть HTML страницы и найти:
+
+```html
+<link rel="canonical" href="https://example.ru/...">
+```
+
+### Open Graph
+
+Open Graph формируется для публичных страниц:
+
+```html
+<meta property="og:title" content="...">
+<meta property="og:description" content="...">
+<meta property="og:type" content="website или article">
+<meta property="og:url" content="...">
+<meta property="og:site_name" content="Визаж & Грим от Тины Борке">
+```
+
+`og:image` выводится только если есть корректная абсолютная ссылка на существующее изображение.
+
+Логика выбора изображения:
+
+- главная: главное изображение сайта или favicon fallback;
+- услуга: первое фото связанного раздела портфолио, иначе fallback сайта;
+- портфолио: первое активное фото;
+- категория портфолио: первое активное фото категории;
+- пост блога: первое фото поста.
+
+### Schema.org / JSON-LD
+
+Используемые типы:
+
+- главная: `BeautySalon` / `LocalBusiness`;
+- услуга: `Service`;
+- услуга с FAQ: дополнительно `FAQPage`;
+- вложенные страницы: `BreadcrumbList`;
+- пост блога: `BlogPosting`;
+- портфолио и категории: `ImageObject`.
+
+JSON-LD собирается на сервере, очищается от пустых полей и выводится только валидным JSON.
+
+### Как проверить
+
+1. Открыть `/sitemap.xml` и проверить, что URL абсолютные.
+2. Убедиться, что в sitemap нет `/admin`.
+3. Открыть `/robots.txt` и проверить ссылку `Sitemap`.
+4. Открыть главную, услугу, пост и категорию портфолио через «Просмотр кода страницы».
+5. Проверить `title`, `meta description`, canonical и Open Graph.
+6. Скопировать JSON-LD в валидатор Schema.org.
+7. На продакшене проверить, что sitemap подтягивает все данные из реальной базы, включая созданные через админку услуги, посты и разделы портфолио.
 
 ### Адаптивная верстка
 

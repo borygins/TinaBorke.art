@@ -3,11 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ post.seo_title }}</title>
-    <meta name="description" content="{{ post.seo_description }}">
+    <title>{{ seo_title }}</title>
+    <meta name="description" content="{{ seo_description }}">
     <link rel="canonical" href="{{ canonical_url }}">
-    <meta property="og:title" content="{{ post.seo_title }}">
-    <meta property="og:description" content="{{ post.seo_description }}">
+    <meta property="og:title" content="{{ og_title }}">
+    <meta property="og:description" content="{{ og_description }}">
+    <meta property="og:type" content="{{ og_type }}">
+    <meta property="og:url" content="{{ canonical_url }}">
+    <meta property="og:site_name" content="Визаж & Грим от Тины Борке">
+    {% if og_image %}<meta property="og:image" content="{{ og_image }}">{% endif %}
     {% include "_favicon.html" %}
     <link rel="stylesheet" href="/static/css/style.css?v=12">
     <link rel="stylesheet" href="/static/css/inner-pages.css?v=3">
@@ -29,6 +33,6 @@
         </article>
     </main>
     {% include "_site_footer.html" %}
-    <script type="application/ld+json">{{ json_ld|safe }}</script>
+    {% if json_ld %}<script type="application/ld+json">{{ json_ld|safe }}</script>{% endif %}
 </body>
 </html>

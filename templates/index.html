@@ -16,13 +16,15 @@
     <!-- /Yandex.Metrika counter -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>{{ site_settings.home_title }}</title>
-    <meta name="description" content="{{ site_settings.home_description }}">
+    <title>{{ seo_title }}</title>
+    <meta name="description" content="{{ seo_description }}">
     <link rel="canonical" href="{{ canonical_url }}">
-    <meta property="og:title" content="{{ site_settings.home_title }}">
-    <meta property="og:description" content="{{ site_settings.home_description }}">
-    <meta property="og:type" content="website">
+    <meta property="og:title" content="{{ og_title }}">
+    <meta property="og:description" content="{{ og_description }}">
+    <meta property="og:type" content="{{ og_type }}">
     <meta property="og:url" content="{{ canonical_url }}">
+    <meta property="og:site_name" content="Визаж & Грим от Тины Борке">
+    {% if og_image %}<meta property="og:image" content="{{ og_image }}">{% endif %}
 
     {% include "_favicon.html" %}
 
@@ -90,15 +92,15 @@
                         </div>
                         <div class="advantage">
                             <div class="advantage__icon">✨</div>
-                            <div class="advantage__text">Моя сильная сторона - ЛИФТИНГ макияж для женщин 50+</div>
+                            <div class="advantage__text">Моя сильная сторона - Лифтинг-макияж для женщин 50+</div>
                         </div>
                         <div class="advantage">
                             <div class="advantage__icon">🧼</div>
                             <div class="advantage__text">Стерильность и аккуратность</div>
                         </div>
                         <div class="advantage">
-                            <div class="advantage__icon">📈</div>
-                            <div class="advantage__text">Постоянное развитие и профессиональный рост</div>
+                            <div class="advantage__icon">⭐</div>
+                            <div class="advantage__text">Использую профессиональную косметику</div>
                         </div>
                         <div class="advantage">
                             <div class="advantage__icon">💝</div>

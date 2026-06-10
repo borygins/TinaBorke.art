@@ -18,6 +18,8 @@ from datetime import datetime, timezone, timedelta
 import os
 import html
 from pathlib import Path
+from urllib.parse import urljoin
+from xml.sax.saxutils import escape as xml_escape
 from pydantic import BaseModel, field_validator
 import aiosqlite
 import httpx
@@ -110,7 +112,7 @@ class Settings:
     TELEGRAM_API_HASH = os.getenv("TELEGRAM_API_HASH", "")
     TELEGRAM_SESSION_NAME = os.getenv("TELEGRAM_SESSION_NAME", "tinaborke")
     TELEGRAM_IMPORT_MODE = os.getenv("TELEGRAM_IMPORT_MODE", "bot_api")
-    BASE_URL = os.getenv("BASE_URL", "http://127.0.0.1:8000").rstrip("/")
+    BASE_URL = os.getenv("BASE_URL", "").rstrip("/")
     DATABASE_URL = os.getenv("DATABASE_URL", "tinaborke.db")
     SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-here")
 
@@ -135,6 +137,80 @@ def plain_excerpt(value: str, limit: int = 160) -> str:
     text = re.sub(r"<[^>]+>", " ", value or "")
     text = re.sub(r"\s+", " ", text).strip()
     return text[:limit].rstrip()
+
+def truncate_meta(value: str, limit: int = 160, fallback: str = "") -> str:
+    text = plain_excerpt(value or fallback, limit)
+    return text or plain_excerpt(fallback, limit)
+
+def get_base_url(request: Optional[Request] = None) -> str:
+    if settings.BASE_URL:
+        return settings.BASE_URL.rstrip("/")
+    if request is not None:
+        return str(request.base_url).rstrip("/")
+    return "http://127.0.0.1:8000"
+
+def absolute_url(path: str = "/", request: Optional[Request] = None) -> str:
+    value = (path or "/").strip()
+    if value.startswith(("http://", "https://")):
+        return value.rstrip("/") if value.endswith("/") and value != get_base_url(request) + "/" else value
+    if not value.startswith("/"):
+        value = "/" + value
+    return urljoin(get_base_url(request) + "/", value.lstrip("/"))
+
+def absolute_asset_url(path: str = "", request: Optional[Request] = None) -> str:
+    value = (path or "").strip()
+    if not value:
+        return ""
+    if value.startswith(("http://", "https://")):
+        return value
+    local_path = Path(value.lstrip("/"))
+    if not local_path.exists():
+        return ""
+    return absolute_url("/" + str(local_path).replace("\\", "/"), request)
+
+def clean_json_ld(value):
+    if isinstance(value, dict):
+        cleaned = {}
+        for key, item in value.items():
+            cleaned_item = clean_json_ld(item)
+            if cleaned_item not in ("", None, [], {}):
+                cleaned[key] = cleaned_item
+        return cleaned
+    if isinstance(value, list):
+        return [item for item in (clean_json_ld(item) for item in value) if item not in ("", None, [], {})]
+    return value
+
+def json_ld_dump(payload) -> str:
+    return json.dumps(clean_json_ld(payload), ensure_ascii=False, separators=(",", ":"))
+
+def build_breadcrumbs(items: list[dict], request: Optional[Request] = None) -> dict:
+    return {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            {
+                "@type": "ListItem",
+                "position": index,
+                "name": item["name"],
+                "item": absolute_url(item["url"], request),
+            }
+            for index, item in enumerate(items, start=1)
+            if item.get("name") and item.get("url")
+        ],
+    }
+
+def image_object_ld(photo: dict, name: str, request: Optional[Request] = None) -> dict:
+    image_url = absolute_asset_url(photo.get("image_path", ""), request)
+    if not image_url:
+        return {}
+    alt_text = photo.get("alt_text") or name
+    return {
+        "@type": "ImageObject",
+        "contentUrl": image_url,
+        "name": alt_text,
+        "description": alt_text,
+        "creator": {"@type": "Person", "name": "Тина Борке"},
+    }
 
 def form_getlist(form, key: str) -> list:
     if hasattr(form, "getlist"):
@@ -163,14 +239,14 @@ def extract_price_number(value: str) -> str:
     digits = re.sub(r"[^\d]", "", value or "")
     return digits or ""
 
-def default_og_image_url() -> str:
+def default_og_image_url(request: Optional[Request] = None) -> str:
     candidates = [
         Path("static/images/photo_2026-06-08_20-36-17.jpg"),
         Path("static/images/android-chrome-512x512.png"),
     ]
     for candidate in candidates:
         if candidate.exists():
-            return settings.BASE_URL + "/" + str(candidate).replace("\\", "/")
+            return absolute_url("/" + str(candidate).replace("\\", "/"), request)
     return ""
 
 def get_social_links(site_settings: dict) -> list[dict]:
@@ -180,6 +256,10 @@ def get_social_links(site_settings: dict) -> list[dict]:
         ("TikTok", site_settings.get("social_tiktok_url", "")),
     ]
     return [{"label": label, "url": url} for label, url in links if url]
+
+def get_same_as_links(site_settings: dict) -> list[str]:
+    keys = ("telegram_contact_url", "telegram_channel_url", "social_avito_url", "social_vk_url", "social_tiktok_url")
+    return [site_settings.get(key, "") for key in keys if site_settings.get(key)]
 
 def require_admin(credentials: HTTPBasicCredentials = Depends(security)):
     expected_username = settings.ADMIN_USERNAME
@@ -1392,11 +1472,24 @@ async def read_root(request: Request):
         services = service_groups["all_services"]
         reviews = await db.get_reviews(global_only=True)
         social_links = get_social_links(site_settings)
+        canonical_url = absolute_url("/", request)
+        seo_title = truncate_meta(
+            site_settings.get("home_title"),
+            60,
+            "Визажист-гример в Санкт-Петербурге — Тина Борке",
+        )
+        seo_description = truncate_meta(
+            site_settings.get("home_description"),
+            160,
+            "Профессиональный макияж, грим и создание образов в Санкт-Петербурге. Запись к визажисту Тине Борке.",
+        )
+        og_image = default_og_image_url(request)
         json_ld = {
             "@context": "https://schema.org",
-            "@type": "BeautySalon",
-            "name": f"Визажист {site_settings.get('master_name', 'Тина Борке')}",
-            "description": site_settings.get("home_description", ""),
+            "@type": ["BeautySalon", "LocalBusiness"],
+            "name": f"Визаж & Грим от {site_settings.get('master_name_genitive', 'Тины Борке')}",
+            "description": seo_description,
+            "url": canonical_url,
             "telephone": site_settings.get("phone", ""),
             "email": site_settings.get("contact_email", ""),
             "priceRange": "₽₽",
@@ -1406,7 +1499,13 @@ async def read_root(request: Request):
                 "addressCountry": "RU",
             },
             "areaServed": site_settings.get("area_served", ""),
-            "sameAs": [item["url"] for item in social_links],
+            "sameAs": get_same_as_links(site_settings),
+            "openingHoursSpecification": [{
+                "@type": "OpeningHoursSpecification",
+                "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+                "opens": "10:00",
+                "closes": "21:00",
+            }],
         }
         return templates.TemplateResponse(request, "index.html", {
             "site_settings": site_settings,
@@ -1416,8 +1515,14 @@ async def read_root(request: Request):
             "additional_services": service_groups["additional_services"],
             "reviews": reviews,
             "social_links": social_links,
-            "canonical_url": settings.BASE_URL + "/",
-            "json_ld": json.dumps(json_ld, ensure_ascii=False),
+            "canonical_url": canonical_url,
+            "seo_title": seo_title,
+            "seo_description": seo_description,
+            "og_title": seo_title,
+            "og_description": seo_description,
+            "og_type": "website",
+            "og_image": og_image,
+            "json_ld": json_ld_dump(json_ld),
         })
     else:
         logger.info("Отдача fallback HTML (шаблоны не найдены)")
@@ -1438,21 +1543,51 @@ async def read_root(request: Request):
 @app.get("/about", response_class=HTMLResponse)
 async def about_page(request: Request):
     site_settings = await db.get_settings()
+    canonical_url = absolute_url("/about", request)
+    seo_title = truncate_meta(f"О мастере {site_settings.get('master_name_prepositional', 'Тине Борке')}", 60)
+    seo_description = truncate_meta(
+        f"О мастере {site_settings.get('master_name_prepositional', 'Тине Борке')}: визаж, грим, выезд и запись в {site_settings.get('city', 'Санкт-Петербург')}.",
+        160,
+    )
+    breadcrumbs = build_breadcrumbs([
+        {"name": "Главная", "url": "/"},
+        {"name": "О мастере", "url": "/about"},
+    ], request)
     return templates.TemplateResponse(request, "about.html", {
         "site_settings": site_settings,
         "social_links": get_social_links(site_settings),
-        "canonical_url": settings.BASE_URL + "/about",
+        "canonical_url": canonical_url,
+        "seo_title": seo_title,
+        "seo_description": seo_description,
+        "og_title": seo_title,
+        "og_description": seo_description,
+        "og_type": "website",
+        "og_image": default_og_image_url(request),
+        "json_ld": json_ld_dump(breadcrumbs),
     })
 
 @app.get("/blog", response_class=HTMLResponse)
 async def blog_index(request: Request):
     site_settings = await db.get_settings()
     posts = await db.get_blog_posts()
+    canonical_url = absolute_url("/blog", request)
+    seo_title = truncate_meta(site_settings.get("blog_title"), 60, "Блог визажиста Тины Борке — советы, работы и новости")
+    seo_description = truncate_meta(site_settings.get("blog_description"), 160, "Советы по макияжу, новости, работы и посты визажиста Тины Борке.")
+    og_image = ""
+    if posts:
+        og_image = absolute_asset_url(posts[0].get("preview_image", ""), request)
+    og_image = og_image or default_og_image_url(request)
     return templates.TemplateResponse(request, "blog.html", {
         "site_settings": site_settings,
         "social_links": get_social_links(site_settings),
         "posts": posts,
-        "canonical_url": settings.BASE_URL + "/blog",
+        "canonical_url": canonical_url,
+        "seo_title": seo_title,
+        "seo_description": seo_description,
+        "og_title": seo_title,
+        "og_description": seo_description,
+        "og_type": "website",
+        "og_image": og_image,
     })
 
 @app.get("/blog/{slug}", response_class=HTMLResponse)
@@ -1461,31 +1596,64 @@ async def blog_post(request: Request, slug: str):
     post = await db.get_blog_post(slug)
     if not post:
         raise HTTPException(status_code=404, detail="Пост не найден")
+    canonical_url = absolute_url(f"/blog/{slug}", request)
+    seo_title = truncate_meta(post.get("seo_title") or post.get("text_markdown", ""), 60, "Пост блога визажиста Тины Борке")
+    seo_description = truncate_meta(post.get("seo_description") or post.get("text_markdown", ""), 160, "Пост блога визажиста Тины Борке.")
+    post_images = [absolute_asset_url(photo.get("image_path", ""), request) for photo in post.get("photos", [])]
+    post_images = [image for image in post_images if image]
     article_ld = {
         "@context": "https://schema.org",
-        "@type": "Article",
-        "headline": post.get("seo_title") or plain_excerpt(post.get("text_markdown", ""), 60),
+        "@type": "BlogPosting",
+        "headline": seo_title,
         "datePublished": post["created_at"],
-        "description": post.get("seo_description") or plain_excerpt(post.get("text_markdown", "")),
+        "dateModified": post["created_at"],
+        "description": seo_description,
         "author": {"@type": "Person", "name": site_settings.get("master_name", "Тина Борке")},
+        "publisher": {"@type": "Organization", "name": f"Визаж & Грим от {site_settings.get('master_name_genitive', 'Тины Борке')}"},
+        "image": post_images,
+        "mainEntityOfPage": canonical_url,
     }
+    breadcrumbs = build_breadcrumbs([
+        {"name": "Главная", "url": "/"},
+        {"name": "Блог", "url": "/blog"},
+        {"name": seo_title, "url": f"/blog/{slug}"},
+    ], request)
     return templates.TemplateResponse(request, "blog_post.html", {
         "site_settings": site_settings,
         "social_links": get_social_links(site_settings),
         "post": post,
-        "canonical_url": settings.BASE_URL + f"/blog/{slug}",
-        "json_ld": json.dumps(article_ld, ensure_ascii=False),
+        "canonical_url": canonical_url,
+        "seo_title": seo_title,
+        "seo_description": seo_description,
+        "og_title": seo_title,
+        "og_description": seo_description,
+        "og_type": "article",
+        "og_image": post_images[0] if post_images else "",
+        "json_ld": json_ld_dump([article_ld, breadcrumbs]),
     })
 
 @app.get("/portfolio", response_class=HTMLResponse)
 async def portfolio_index(request: Request):
     site_settings = await db.get_settings()
     categories = await db.get_portfolio_categories()
+    photos = await db.get_portfolio_photos(active_only=True, limit=20)
+    canonical_url = absolute_url("/portfolio", request)
+    seo_title = truncate_meta(f"Портфолио визажиста {site_settings.get('master_name_genitive', 'Тины Борке')} — макияж и грим в Санкт-Петербурге", 70)
+    seo_description = truncate_meta(f"Портфолио визажиста {site_settings.get('master_name_genitive', 'Тины Борке')}: свадебный, вечерний, лифтинг макияж и образы для мероприятий.", 160)
+    image_graph = [image_object_ld(photo, photo.get("alt_text") or photo.get("category_title") or "Портфолио визажиста Тины Борке", request) for photo in photos]
+    json_ld_payload = {"@context": "https://schema.org", "@graph": image_graph} if image_graph else ""
     return templates.TemplateResponse(request, "portfolio.html", {
         "site_settings": site_settings,
         "social_links": get_social_links(site_settings),
         "categories": categories,
-        "canonical_url": settings.BASE_URL + "/portfolio",
+        "canonical_url": canonical_url,
+        "seo_title": seo_title,
+        "seo_description": seo_description,
+        "og_title": seo_title,
+        "og_description": seo_description,
+        "og_type": "website",
+        "og_image": absolute_asset_url(photos[0].get("image_path", ""), request) if photos else "",
+        "json_ld": json_ld_dump(json_ld_payload) if json_ld_payload else "",
     })
 
 @app.get("/portfolio/{category_slug}", response_class=HTMLResponse)
@@ -1494,11 +1662,29 @@ async def portfolio_category_page(request: Request, category_slug: str):
     category = await db.get_portfolio_category(category_slug)
     if not category:
         raise HTTPException(status_code=404, detail="Категория портфолио не найдена")
+    canonical_url = absolute_url(f"/portfolio/{category_slug}", request)
+    seo_title = truncate_meta(f"{category['title']} — портфолио визажиста Тины Борке", 70)
+    seo_description = truncate_meta(category.get("description"), 160, f"{category['title']} в портфолио визажиста Тины Борке в Санкт-Петербурге.")
+    photos = category.get("photos", [])
+    image_graph = [image_object_ld(photo, photo.get("alt_text") or f"{category['title']} — работа визажиста Тины Борке", request) for photo in photos]
+    breadcrumbs = build_breadcrumbs([
+        {"name": "Главная", "url": "/"},
+        {"name": "Портфолио", "url": "/portfolio"},
+        {"name": category["title"], "url": f"/portfolio/{category_slug}"},
+    ], request)
+    json_ld_payload = [{"@context": "https://schema.org", "@graph": image_graph}, breadcrumbs] if image_graph else [breadcrumbs]
     return templates.TemplateResponse(request, "portfolio_category.html", {
         "site_settings": site_settings,
         "social_links": get_social_links(site_settings),
         "category": category,
-        "canonical_url": settings.BASE_URL + f"/portfolio/{category_slug}",
+        "canonical_url": canonical_url,
+        "seo_title": seo_title,
+        "seo_description": seo_description,
+        "og_title": seo_title,
+        "og_description": seo_description,
+        "og_type": "website",
+        "og_image": absolute_asset_url(photos[0].get("image_path", ""), request) if photos else "",
+        "json_ld": json_ld_dump(json_ld_payload),
     })
 
 @app.get("/uslugi/{slug}", response_class=HTMLResponse)
@@ -1514,33 +1700,50 @@ async def service_page(request: Request, slug: str):
         if line.strip(" -\t")
     ]
     service_h1 = service.get("h1_title") or service["title"]
-    seo_title = service.get("seo_title") or service["title"]
-    seo_description = service.get("seo_description") or plain_excerpt(service.get("description") or service["title"])
-    canonical_url = settings.BASE_URL + f"/uslugi/{slug}"
+    seo_title = truncate_meta(service.get("seo_title"), 70, f"{service['title']} — Тина Борке, Санкт-Петербург")
+    seo_description = truncate_meta(service.get("seo_description"), 160, service.get("description") or service["title"])
+    canonical_url = absolute_url(f"/uslugi/{slug}", request)
     faq_items = await db.get_service_faq(service["id"])
     portfolio_photos = await db.get_service_portfolio_photos(service, limit=6)
     related_services = await db.get_related_services(service["id"], active_only=True)
     related_posts = await db.get_related_posts(service["id"], visible_only=True)
     preview_image_url = ""
     if portfolio_photos:
-        preview_image_url = settings.BASE_URL + portfolio_photos[0]["image_path"]
+        preview_image_url = absolute_asset_url(portfolio_photos[0]["image_path"], request)
     else:
-        preview_image_url = default_og_image_url()
+        preview_image_url = default_og_image_url(request)
 
     service_ld = {
         "@context": "https://schema.org",
         "@type": "Service",
-        "name": service["title"],
+        "name": service_h1,
         "description": seo_description,
-        "provider": {"@type": "BeautySalon", "name": f"Визаж & Грим от {site_settings.get('master_name_genitive', 'Тины Борке')}"},
+        "url": canonical_url,
+        "image": preview_image_url,
+        "provider": {
+            "@type": "BeautySalon",
+            "name": f"Визаж & Грим от {site_settings.get('master_name_genitive', 'Тины Борке')}",
+            "url": absolute_url("/", request),
+        },
         "areaServed": site_settings.get("city", "Санкт-Петербург"),
     }
     price_number = extract_price_number(service.get("price", ""))
     if price_number:
-        service_ld["offers"] = {"@type": "Offer", "price": price_number, "priceCurrency": "RUB"}
+        service_ld["offers"] = {
+            "@type": "Offer",
+            "price": price_number,
+            "priceCurrency": "RUB",
+            "availability": "https://schema.org/InStock",
+            "url": canonical_url,
+        }
     if service.get("duration"):
         service_ld["hoursAvailable"] = service["duration"]
     json_ld_payload = [service_ld]
+    json_ld_payload.append(build_breadcrumbs([
+        {"name": "Главная", "url": "/"},
+        {"name": "Услуги", "url": "/#services"},
+        {"name": service["title"], "url": f"/uslugi/{slug}"},
+    ], request))
     if faq_items:
         json_ld_payload.append({
             "@context": "https://schema.org",
@@ -1569,24 +1772,57 @@ async def service_page(request: Request, slug: str):
             "reviews": reviews,
             "canonical_url": canonical_url,
             "preview_image_url": preview_image_url,
-            "json_ld": json.dumps(json_ld_payload, ensure_ascii=False),
+            "og_title": seo_title,
+            "og_description": seo_description,
+            "og_type": "website",
+            "og_image": preview_image_url,
+            "json_ld": json_ld_dump(json_ld_payload),
     })
 
 @app.get("/robots.txt", response_class=PlainTextResponse)
-async def robots_txt():
-    return f"User-agent: *\nDisallow: /admin\nAllow: /\n\nSitemap: {settings.BASE_URL}/sitemap.xml\n"
+async def robots_txt(request: Request):
+    return (
+        "User-agent: *\n"
+        "Disallow: /admin\n"
+        "Disallow: /login\n"
+        "Disallow: /logout\n"
+        "Allow: /\n\n"
+        f"Sitemap: {absolute_url('/sitemap.xml', request)}\n"
+    )
 
 @app.get("/favicon.ico", include_in_schema=False)
 async def favicon_ico():
     return FileResponse("static/images/favicon.ico", media_type="image/x-icon")
 
 @app.get("/sitemap.xml", response_class=PlainTextResponse)
-async def sitemap_xml():
+async def sitemap_xml(request: Request):
     services = await db.get_services()
     posts = await db.get_blog_posts()
     categories = await db.get_portfolio_categories()
-    urls = ["/", "/about", "/blog", "/portfolio"] + [f"/portfolio/{item['slug']}" for item in categories] + [f"/uslugi/{item['slug']}" for item in services] + [f"/blog/{item['slug']}" for item in posts]
-    body = "\n".join(f"<url><loc>{settings.BASE_URL}{url}</loc></url>" for url in urls)
+    today = get_moscow_time().strftime("%Y-%m-%d")
+    urls = [
+        {"path": "/", "priority": "1.0", "changefreq": "weekly", "lastmod": today},
+        {"path": "/about", "priority": "0.7", "changefreq": "monthly", "lastmod": today},
+        {"path": "/portfolio", "priority": "0.8", "changefreq": "weekly", "lastmod": today},
+        {"path": "/blog", "priority": "0.8", "changefreq": "weekly", "lastmod": today},
+    ]
+    urls.extend({"path": f"/portfolio/{item['slug']}", "priority": "0.7", "changefreq": "monthly", "lastmod": today} for item in categories)
+    urls.extend({"path": f"/uslugi/{item['slug']}", "priority": "0.8", "changefreq": "monthly", "lastmod": today} for item in services)
+    urls.extend({
+        "path": f"/blog/{item['slug']}",
+        "priority": "0.6",
+        "changefreq": "monthly",
+        "lastmod": (item.get("created_at") or today)[:10],
+    } for item in posts)
+    body = "\n".join(
+        "  <url>\n"
+        f"    <loc>{xml_escape(absolute_url(item['path'], request))}</loc>\n"
+        f"    <lastmod>{xml_escape(item['lastmod'])}</lastmod>\n"
+        f"    <changefreq>{item['changefreq']}</changefreq>\n"
+        f"    <priority>{item['priority']}</priority>\n"
+        "  </url>"
+        for item in urls
+    )
     return PlainTextResponse(
         f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n{body}\n</urlset>',
         media_type="application/xml",

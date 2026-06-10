@@ -6,11 +6,12 @@
     <title>{{ seo_title }}</title>
     <meta name="description" content="{{ seo_description }}">
     <link rel="canonical" href="{{ canonical_url }}">
-    <meta property="og:title" content="{{ seo_title }}">
-    <meta property="og:description" content="{{ seo_description }}">
-    <meta property="og:type" content="website">
+    <meta property="og:title" content="{{ og_title }}">
+    <meta property="og:description" content="{{ og_description }}">
+    <meta property="og:type" content="{{ og_type }}">
     <meta property="og:url" content="{{ canonical_url }}">
-    {% if preview_image_url %}<meta property="og:image" content="{{ preview_image_url }}">{% endif %}
+    <meta property="og:site_name" content="Визаж & Грим от Тины Борке">
+    {% if og_image %}<meta property="og:image" content="{{ og_image }}">{% endif %}
     {% include "_favicon.html" %}
     <link rel="stylesheet" href="/static/css/style.css?v=12">
     <link rel="stylesheet" href="/static/css/inner-pages.css?v=8">
@@ -177,7 +178,7 @@
     </div>
     {% endif %}
     {% include "_site_footer.html" %}
-    <script type="application/ld+json">{{ json_ld|safe }}</script>
+    {% if json_ld %}<script type="application/ld+json">{{ json_ld|safe }}</script>{% endif %}
     {% if portfolio_photos %}<script src="/static/js/portfolio-lightbox.js"></script>{% endif %}
 </body>
 </html>
