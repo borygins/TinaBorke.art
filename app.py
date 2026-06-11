@@ -233,7 +233,7 @@ def format_ru_datetime(value: str) -> str:
     for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%Y-%m-%d"):
         try:
             parsed = datetime.strptime(text, fmt)
-            return f"{parsed.day} {months[parsed.month]} {parsed.year} год {parsed:%H:%M}"
+            return f"{parsed.day} {months[parsed.month]} {parsed.year} года {parsed:%H:%M}"
         except ValueError:
             continue
     return text
