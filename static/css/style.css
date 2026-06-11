@@ -1738,25 +1738,6 @@ body {
   outline-offset: 3px;
 }
 
-.footer__form {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-12);
-}
-
-.footer__form .btn--primary {
-  background: linear-gradient(135deg, var(--gold), var(--rose-gold));
-  color: var(--dark-bg-primary);
-  border: 0;
-  font-weight: 700;
-}
-
-.footer__form .btn--primary:hover {
-  color: var(--dark-bg-primary);
-  transform: translateY(-1px);
-  box-shadow: 0 12px 26px rgba(212, 175, 55, 0.22);
-}
-
 .footer__quick-contact {
   width: 100%;
   justify-self: stretch;
@@ -2319,8 +2300,7 @@ img { max-width: 100%; height: auto; }
     .services__grid,
     .reviews__grid,
     .contacts__grid { grid-template-columns: 1fr; }
-    .booking__form,
-    .footer__form { width: 100%; }
+    .booking__form { width: 100%; }
     .admin-shell,
     .content-page {
         width: min(100% - 20px, 100%);
@@ -2497,17 +2477,12 @@ body {
     padding: 112px 0 64px;
 }
 
-.service-breadcrumbs,
 .portfolio-top-actions {
     display: flex;
     align-items: center;
     gap: 10px;
     flex-wrap: wrap;
     margin-bottom: 24px;
-}
-
-.service-breadcrumbs a {
-    color: var(--gold, #d4af37);
 }
 
 .service-hero-card {

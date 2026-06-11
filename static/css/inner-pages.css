@@ -33,8 +33,7 @@
     padding: 116px 0 72px;
 }
 
-.inner-back,
-.service-breadcrumbs {
+.inner-back {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -43,8 +42,7 @@
     color: var(--inner-muted);
 }
 
-.inner-back a,
-.service-breadcrumbs a {
+.inner-back a {
     color: var(--inner-gold);
     text-decoration: none;
 }
