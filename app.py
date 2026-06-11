@@ -391,6 +391,10 @@ class Database:
                         portfolio_category_id INTEGER,
                         is_active INTEGER NOT NULL DEFAULT 1
                     );
+                    CREATE TABLE IF NOT EXISTS deleted_seed_services (
+                        slug TEXT PRIMARY KEY,
+                        deleted_at TEXT NOT NULL
+                    );
                     CREATE TABLE IF NOT EXISTS gallery (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         image_path TEXT NOT NULL,
@@ -557,6 +561,10 @@ class Database:
                 slug TEXT NOT NULL UNIQUE,
                 sort_order INTEGER NOT NULL DEFAULT 0
             );
+            CREATE TABLE IF NOT EXISTS deleted_seed_services (
+                slug TEXT PRIMARY KEY,
+                deleted_at TEXT NOT NULL
+            );
         """)
 
     async def seed_defaults(self, db):
@@ -607,6 +615,9 @@ class Database:
             ("Обучение макияжу", "obuchenie-makiyazhu", "Индивидуальный урок для повседневного или вечернего макияжа.", "Договорная", "2 часа", 60, 0, "additional"),
         ]
         for title, slug, description, price, duration, sort_order, is_popular, service_group in default_services:
+            async with db.execute("SELECT 1 FROM deleted_seed_services WHERE slug = ?", (slug,)) as cursor:
+                if await cursor.fetchone():
+                    continue
             await db.execute("""
                 INSERT OR IGNORE INTO services
                 (title, slug, description, price, duration, sort_order, is_popular, service_group, seo_title, seo_description, is_active)
@@ -811,9 +822,18 @@ class Database:
             """, values)
 
     async def delete_service(self, service_id: int):
+        service = await self.fetch_one("SELECT slug FROM services WHERE id = ?", (service_id,))
+        if service:
+            await self.execute("""
+                INSERT INTO deleted_seed_services (slug, deleted_at)
+                VALUES (?, ?)
+                ON CONFLICT(slug) DO UPDATE SET deleted_at = excluded.deleted_at
+            """, (service["slug"], get_moscow_time().strftime("%Y-%m-%d %H:%M:%S")))
         await self.execute("DELETE FROM service_faq WHERE service_id = ?", (service_id,))
         await self.execute("DELETE FROM service_related_services WHERE service_id = ? OR related_service_id = ?", (service_id, service_id))
         await self.execute("DELETE FROM service_related_posts WHERE service_id = ?", (service_id,))
+        await self.execute("UPDATE reviews SET service_id = NULL WHERE service_id = ?", (service_id,))
+        await self.execute("UPDATE portfolio_photos SET service_id = NULL WHERE service_id = ?", (service_id,))
         await self.execute("DELETE FROM services WHERE id = ?", (service_id,))
 
     async def save_service_extensions(self, service_id: int, form):
