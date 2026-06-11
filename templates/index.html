@@ -126,15 +126,6 @@
                 </div>
                 {%- endmacro %}
 
-                {% if popular_services %}
-                <div class="services__category">
-                    <h3>Популярные услуги</h3>
-                    <div class="services__grid">
-                        {% for service in popular_services %}{{ service_card(service) }}{% endfor %}
-                    </div>
-                </div>
-                {% endif %}
-
                 {% if main_services %}
                 <div class="services__category">
                     <h3>Основные услуги</h3>

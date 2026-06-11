@@ -113,7 +113,6 @@
                             {% endfor %}
                         </select>
                     </label>
-                    <label class="admin-check"><input type="checkbox" name="is_popular"> Популярная</label>
                     <label class="admin-check"><input type="checkbox" name="is_hit"> Хит</label>
                     <label class="admin-check"><input type="checkbox" name="is_active" checked> Показывать</label>
                     <label class="admin-wide">Короткое описание услуги<textarea name="description" rows="3"></textarea></label>
@@ -171,7 +170,7 @@
                         <span class="admin-row-title">{{ service.title }}</span>
                         <span>{{ service.price or 'Цена не указана' }}</span>
                         <span>{{ service.duration or 'Время не указано' }}</span>
-                        <span>{% if service.is_popular %}Популярная{% else %}{{ service_group_label(service.service_group) }}{% endif %}</span>
+                        <span>{{ service_group_label(service.service_group) }}</span>
                         <span>{% if service.is_hit %}Хит{% else %}Обычная{% endif %}</span>
                         <span>{% if service.is_active %}Видима{% else %}Скрыта{% endif %}</span>
                     </summary>
@@ -197,7 +196,6 @@
                                 {% endfor %}
                             </select>
                         </label>
-                        <label class="admin-check"><input type="checkbox" name="is_popular" {% if service.is_popular %}checked{% endif %}> Популярная</label>
                         <label class="admin-check"><input type="checkbox" name="is_hit" {% if service.is_hit %}checked{% endif %}> Хит</label>
                         <label class="admin-check"><input type="checkbox" name="is_active" {% if service.is_active %}checked{% endif %}> Видна</label>
                         {{ text_editor('Короткое описание услуги', 'description', service.description, 4) }}
