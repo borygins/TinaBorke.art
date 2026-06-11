@@ -7,7 +7,7 @@
     <title>Админка TinaBorke.Art</title>
     {% include "_favicon.html" %}
     <link rel="stylesheet" href="/static/css/style.css?v=12">
-    <link rel="stylesheet" href="/static/css/admin.css?v=10">
+    <link rel="stylesheet" href="/static/css/admin.css?v=11">
 </head>
 <body class="admin-page">
     <main class="admin-shell">
@@ -301,7 +301,8 @@
             <form method="post" action="/admin/portfolio/upload" enctype="multipart/form-data" class="admin-form">
                 <label>Фото работы<input type="file" name="images" accept=".jpg,.jpeg,.png,.webp" multiple required></label>
                 <p class="admin-help admin-wide">Можно выбрать несколько фото за раз. Рекомендуется до 20 файлов.</p>
-                <label>Раздел
+                <p class="admin-help admin-wide">Раздел определяет страницу портфолио. Услуга определяет, на какой странице услуги показать это фото.</p>
+                <label>Раздел портфолио
                     <select name="category_id" required>
                         <option value="">Выберите раздел</option>
                         {% for category in portfolio_categories %}
@@ -309,7 +310,7 @@
                         {% endfor %}
                     </select>
                 </label>
-                <label>Связанная услуга
+                <label>Показывать на странице услуги
                     <select name="service_id">
                         <option value="">Не выбрана</option>
                         {% for service in services %}
@@ -364,7 +365,7 @@
                         <img src="{{ photo.image_path }}" alt="{{ photo.alt_text }}" loading="lazy">
                         <form method="post" action="/admin/portfolio/save" class="admin-form admin-form--dialog">
                             <input type="hidden" name="id" value="{{ photo.id }}">
-                            <label>Раздел
+                            <label>Раздел портфолио
                                 <select name="category_id">
                                     <option value="">Не выбран</option>
                                     {% for category in portfolio_categories %}
@@ -372,7 +373,7 @@
                                     {% endfor %}
                                 </select>
                             </label>
-                            <label>Услуга
+                            <label>Показывать на странице услуги
                                 <select name="service_id">
                                     <option value="">Не выбрана</option>
                                     {% for service in services %}

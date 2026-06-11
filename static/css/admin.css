@@ -352,6 +352,10 @@
     background: #fff;
 }
 
+.admin-photo-tile[hidden] {
+    display: none !important;
+}
+
 .admin-photo-tile strong,
 .admin-photo-tile span {
     display: block;

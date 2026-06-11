@@ -951,14 +951,19 @@ class Database:
         """, (service_id,))
 
     async def get_service_portfolio_photos(self, service: dict, limit: int = 6) -> list[dict]:
-        if not service.get("portfolio_category_id"):
-            return []
         photos = await self.fetch_all("""
+            SELECT * FROM portfolio_photos
+            WHERE service_id = ? AND is_active = 1
+            ORDER BY sort_order, id DESC
+            LIMIT ?
+        """, (service["id"], limit))
+        if not photos and service.get("portfolio_category_id"):
+            photos = await self.fetch_all("""
             SELECT * FROM portfolio_photos
             WHERE category_id = ? AND is_active = 1
             ORDER BY sort_order, id DESC
             LIMIT ?
-        """, (service["portfolio_category_id"], limit))
+            """, (service["portfolio_category_id"], limit))
         fallback = f"{service.get('title', 'Услуга')} в Санкт-Петербурге — работа визажиста Тины Борке"
         for photo in photos:
             photo["display_alt"] = (photo.get("alt_text") or "").strip() or fallback
