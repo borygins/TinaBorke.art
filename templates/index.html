@@ -303,22 +303,22 @@
 
                     <form class="booking__form" id="bookingForm">
                         <div class="form-group">
-                            <label class="form-label" for="name">Имя *</label>
+                            <label class="form-label" for="name">Имя (заполнить)</label>
                             <input type="text" class="form-control" id="name" name="name" required>
                         </div>
 
                         <div class="form-group">
-                            <label class="form-label" for="phone">Телефон *</label>
+                            <label class="form-label" for="phone">Телефон (заполнить)</label>
                             <input type="tel" class="form-control" id="phone" name="phone" required>
                         </div>
 
                         <div class="form-group">
-                            <label class="form-label" for="date">Желаемая дата</label>
+                            <label class="form-label" for="date">Желаемая дата (не обязательно)</label>
                             <input type="date" class="form-control" id="date" name="date">
                         </div>
 
                         <div class="form-group">
-                            <label class="form-label" for="service">Тип услуги</label>
+                            <label class="form-label" for="service">Тип услуги (не обязательно)</label>
                             <select class="form-control" id="service" name="service">
                                 <option value="">Выберите услугу</option>
                                 {% for service in services %}
@@ -329,7 +329,7 @@
                         </div>
 
                         <div class="form-group">
-                            <label class="form-label" for="message">Комментарий</label>
+                            <label class="form-label" for="message">Комментарий (не обязательно)</label>
                             <textarea class="form-control" id="message" name="message" rows="4" placeholder="Опишите желаемый образ или приложите ссылку на референс"></textarea>
                         </div>
 
