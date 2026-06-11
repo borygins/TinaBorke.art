@@ -7,7 +7,7 @@
     <title>Админка TinaBorke.Art</title>
     {% include "_favicon.html" %}
     <link rel="stylesheet" href="/static/css/style.css?v=12">
-    <link rel="stylesheet" href="/static/css/admin.css?v=11">
+    <link rel="stylesheet" href="/static/css/admin.css?v=12">
 </head>
 <body class="admin-page">
     <main class="admin-shell">
@@ -262,43 +262,12 @@
 
         <section class="admin-panel {% if active_tab != 'portfolio' %}is-hidden{% endif %}" id="portfolio">
             <h2>Портфолио</h2>
-            <p class="admin-help">Раздел «Галерея» убран из интерфейса. Все работы ведутся через портфолио.</p>
+            <p class="admin-help">Здесь можно загрузить фото работ, распределить их по разделам и связать с услугами. Раздел определяет страницу портфолио, а связанная услуга определяет, на какой странице услуги показать фото.</p>
 
-            <form method="post" action="/admin/portfolio/categories/save" class="admin-form">
-                <label>Название раздела<input name="title" placeholder="Например: Свадебный макияж" required></label>
-                <label>Адрес страницы<input name="slug" placeholder="Можно оставить пустым"></label>
-                <label>Порядок<input name="sort_order" type="number" value="100"></label>
-                <label class="admin-wide">Описание раздела<textarea name="description" rows="3"></textarea></label>
-                <label class="admin-check"><input type="checkbox" name="is_active" checked> Показывать</label>
-                <button class="btn btn--primary" type="submit">Добавить раздел</button>
-            </form>
-
-            <div class="admin-compact-list">
-                {% for category in portfolio_categories %}
-                <details class="admin-compact-item">
-                    <summary>
-                        <span class="admin-row-title">{{ category.title }}</span>
-                        <span>{{ category.photo_count }} фото</span>
-                        <span>Порядок: {{ category.sort_order }}</span>
-                        <span>{% if category.is_active %}Видим{% else %}Скрыт{% endif %}</span>
-                    </summary>
-                    <form method="post" action="/admin/portfolio/categories/save" class="admin-form admin-form--inside">
-                        <input type="hidden" name="id" value="{{ category.id }}">
-                        <label>Название<input name="title" value="{{ category.title }}"></label>
-                        <label>Адрес страницы<input name="slug" value="{{ category.slug }}"></label>
-                        <label>Порядок<input name="sort_order" type="number" value="{{ category.sort_order }}"></label>
-                        {{ text_editor('Описание раздела', 'description', category.description, 4) }}
-                        <label class="admin-check"><input type="checkbox" name="is_active" {% if category.is_active %}checked{% endif %}> Видим</label>
-                        <button class="btn btn--primary" type="submit">Сохранить раздел</button>
-                    </form>
-                    <form method="post" action="/admin/portfolio/categories/{{ category.id }}/delete" class="admin-delete-form" onsubmit="return confirm('Удалить раздел? Фото не будут удалены, но станут невидимыми и их можно будет перенести в другой раздел.');">
-                        <button class="btn btn--secondary" type="submit">Удалить раздел</button>
-                    </form>
-                </details>
-                {% endfor %}
-            </div>
-
-            <form method="post" action="/admin/portfolio/upload" enctype="multipart/form-data" class="admin-form">
+            <div class="admin-section-card admin-section-card--primary">
+                <h3>Загрузить фото в портфолио</h3>
+                <p class="admin-help">Выберите один или несколько файлов, укажите раздел и при необходимости связанную услугу. Фото появятся в выбранном разделе портфолио и могут отображаться на странице связанной услуги.</p>
+                <form method="post" action="/admin/portfolio/upload" enctype="multipart/form-data" class="admin-form">
                 <label>Фото работы<input type="file" name="images" accept=".jpg,.jpeg,.png,.webp" multiple required></label>
                 <p class="admin-help admin-wide">Можно выбрать несколько фото за раз. Рекомендуется до 20 файлов.</p>
                 <p class="admin-help admin-wide">Раздел определяет страницу портфолио. Услуга определяет, на какой странице услуги показать это фото.</p>
@@ -321,9 +290,13 @@
                 <label>Порядок<input name="sort_order" type="number" value="100"></label>
                 <label class="admin-wide">Описание фото<textarea name="alt_text" rows="2"></textarea></label>
                 <button class="btn btn--primary" type="submit">Загрузить фото</button>
-            </form>
+                </form>
+            </div>
 
-            <div class="admin-filter-note">Показаны последние 30 фото. Миниатюры открывают окно действий.</div>
+            <div class="admin-section-card">
+                <h3>Управление фото</h3>
+                <p class="admin-help">Здесь можно найти загруженные фото, изменить раздел портфолио, связанную услугу, описание, порядок или видимость.</p>
+                <div class="admin-filter-note">Показаны последние 30 фото. Миниатюры открывают окно действий.</div>
             <div class="admin-photo-filters" aria-label="Фильтры портфолио">
                 <label>Категория
                     <select data-portfolio-filter="category">
@@ -392,6 +365,45 @@
                     </dialog>
                 </article>
                 {% endfor %}
+            </div>
+            </div>
+
+            <div class="admin-section-card">
+                <h3>Разделы портфолио</h3>
+                <p class="admin-help">Разделы нужны для группировки работ на страницах портфолио: например, свадебный макияж, вечерний макияж, выпускной. Обычно их нужно настроить один раз.</p>
+                <form method="post" action="/admin/portfolio/categories/save" class="admin-form">
+                    <label>Название раздела<input name="title" placeholder="Например: Свадебный макияж" required></label>
+                    <label>Адрес страницы<input name="slug" placeholder="Можно оставить пустым"></label>
+                    <label>Порядок<input name="sort_order" type="number" value="100"></label>
+                    <label class="admin-wide">Описание раздела<textarea name="description" rows="3"></textarea></label>
+                    <label class="admin-check"><input type="checkbox" name="is_active" checked> Показывать</label>
+                    <button class="btn btn--primary" type="submit">Добавить раздел</button>
+                </form>
+
+                <div class="admin-compact-list">
+                    {% for category in portfolio_categories %}
+                    <details class="admin-compact-item">
+                        <summary>
+                            <span class="admin-row-title">{{ category.title }}</span>
+                            <span>{{ category.photo_count }} фото</span>
+                            <span>Порядок: {{ category.sort_order }}</span>
+                            <span>{% if category.is_active %}Видим{% else %}Скрыт{% endif %}</span>
+                        </summary>
+                        <form method="post" action="/admin/portfolio/categories/save" class="admin-form admin-form--inside">
+                            <input type="hidden" name="id" value="{{ category.id }}">
+                            <label>Название<input name="title" value="{{ category.title }}"></label>
+                            <label>Адрес страницы<input name="slug" value="{{ category.slug }}"></label>
+                            <label>Порядок<input name="sort_order" type="number" value="{{ category.sort_order }}"></label>
+                            {{ text_editor('Описание раздела', 'description', category.description, 4) }}
+                            <label class="admin-check"><input type="checkbox" name="is_active" {% if category.is_active %}checked{% endif %}> Видим</label>
+                            <button class="btn btn--primary" type="submit">Сохранить раздел</button>
+                        </form>
+                        <form method="post" action="/admin/portfolio/categories/{{ category.id }}/delete" class="admin-delete-form" onsubmit="return confirm('Удалить раздел? Фото не будут удалены, но станут невидимыми и их можно будет перенести в другой раздел.');">
+                            <button class="btn btn--secondary" type="submit">Удалить раздел</button>
+                        </form>
+                    </details>
+                    {% endfor %}
+                </div>
             </div>
         </section>
 
