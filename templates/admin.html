@@ -299,7 +299,8 @@
             </div>
 
             <form method="post" action="/admin/portfolio/upload" enctype="multipart/form-data" class="admin-form">
-                <label>Фото работы<input type="file" name="image" accept=".jpg,.jpeg,.png,.webp" required></label>
+                <label>Фото работы<input type="file" name="images" accept=".jpg,.jpeg,.png,.webp" multiple required></label>
+                <p class="admin-help admin-wide">Можно выбрать несколько фото за раз. Рекомендуется до 20 файлов.</p>
                 <label>Раздел
                     <select name="category_id" required>
                         <option value="">Выберите раздел</option>

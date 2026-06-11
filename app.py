@@ -2347,13 +2347,41 @@ async def admin_delete_portfolio_category(category_id: int, _: str = Depends(req
 
 @app.post("/admin/portfolio/upload")
 async def admin_upload_portfolio(
-    image: UploadFile = File(...),
+    images: List[UploadFile] = File(...),
     request: Request = None,
     _: str = Depends(require_admin),
 ):
     form = dict(await request.form())
-    image_path = await save_upload(image, "static/uploads/portfolio")
-    await db.save_portfolio_photo(image_path, form)
+    upload_images = [image for image in images if getattr(image, "filename", "")]
+    if not upload_images:
+        raise HTTPException(status_code=400, detail="Выберите хотя бы одно фото для загрузки")
+    if len(upload_images) > 20:
+        raise HTTPException(status_code=400, detail="За один раз можно загрузить не более 20 фото")
+
+    try:
+        base_sort_order = int(form.get("sort_order") or 0)
+    except (TypeError, ValueError):
+        base_sort_order = 0
+
+    uploaded_count = 0
+    total_count = len(upload_images)
+    for index, image in enumerate(upload_images):
+        try:
+            image_path = await save_upload(image, "static/uploads/portfolio")
+            photo_form = dict(form)
+            photo_form["sort_order"] = str(base_sort_order + index)
+            await db.save_portfolio_photo(image_path, photo_form)
+            uploaded_count += 1
+        except HTTPException as exc:
+            detail = f"Ошибка при загрузке файла {image.filename}: {exc.detail}"
+            if uploaded_count:
+                detail += f". Загружено фото до ошибки: {uploaded_count} из {total_count}"
+            raise HTTPException(status_code=exc.status_code, detail=detail) from exc
+        except Exception as exc:
+            detail = f"Ошибка при загрузке файла {image.filename}"
+            if uploaded_count:
+                detail += f". Загружено фото до ошибки: {uploaded_count} из {total_count}"
+            raise HTTPException(status_code=500, detail=detail) from exc
     return RedirectResponse("/admin?tab=portfolio", status_code=303)
 
 @app.post("/admin/portfolio/save")
