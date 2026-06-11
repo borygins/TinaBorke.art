@@ -13,8 +13,8 @@
     <meta property="og:site_name" content="Визаж & Грим от Тины Борке">
     {% if og_image %}<meta property="og:image" content="{{ og_image }}">{% endif %}
     {% include "_favicon.html" %}
-    <link rel="stylesheet" href="/static/css/style.css?v=12">
-    <link rel="stylesheet" href="/static/css/inner-pages.css?v=9">
+    <link rel="stylesheet" href="/static/css/style.css?v=15">
+    <link rel="stylesheet" href="/static/css/inner-pages.css?v=10">
 </head>
 <body class="inner-page service-detail-page">
     {% include "_site_header.html" %}
@@ -87,6 +87,20 @@
             <p class="service-info-text">{{ service.preparation_text }}</p>
         </section>
         {% endif %}
+
+        <section class="service-booking">
+            <h2 class="service-booking__title">Хотите записаться на {{ service.title }}?</h2>
+            <p class="service-booking__text">Быстрее всего отвечаю в Telegram. Напишите дату, услугу и удобное время — я подскажу свободные варианты.</p>
+            <div class="service-booking__actions">
+                {% if site_settings.telegram_contact_url %}
+                <a class="btn btn--primary" href="{{ site_settings.telegram_contact_url }}" target="_blank" rel="noopener" aria-label="Написать в Telegram для записи на услугу {{ service.title }}">Написать в Telegram</a>
+                {% endif %}
+                {% if site_settings.phone %}
+                <a class="btn btn--secondary" href="tel:{{ site_settings.phone|replace(' ', '')|replace('-', '') }}" aria-label="Позвонить для записи на услугу {{ service.title }}">Позвонить</a>
+                {% endif %}
+                <a class="btn btn--secondary" href="/#consultation">Оставить заявку</a>
+            </div>
+        </section>
 
         {% if portfolio_photos %}
         <section class="service-portfolio-preview">

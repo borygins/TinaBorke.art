@@ -1,23 +1,87 @@
-<footer class="inner-footer">
-    <div class="inner-footer__content">
-        <div>
-            <h2>Визаж & Грим от {{ site_settings.get('master_name_genitive', 'Тины Борке') }}</h2>
-            <p>{{ site_settings.city }} · {{ site_settings.working_hours }}</p>
+<footer class="footer">
+    <div class="container">
+        <div class="footer__content">
+            <div class="footer__info">
+                <h3>Контактная информация</h3>
+                {% set footer_address = site_settings.get('city', '') %}
+                {% set footer_telegram_contact = site_settings.get('telegram_contact_url') %}
+                {% set footer_telegram_channel = site_settings.get('telegram_channel_url') %}
+                <div class="contact-item">
+                    <strong>📍 Адрес студии:</strong>
+                    <span>{{ footer_address }}</span>
+                    {% if site_settings.get('map_url') %}
+                    <a class="footer-contact-button" href="{{ site_settings.get('map_url') }}" target="_blank" rel="noopener" aria-label="Показать студию визажиста Тины Борке на карте">Карта</a>
+                    {% endif %}
+                </div>
+                <div class="contact-item">
+                    <strong>📞 Телефон:</strong>
+                    <span>{{ site_settings.phone }}</span>
+                    <a class="footer-contact-button" href="tel:{{ site_settings.phone|replace(' ', '')|replace('-', '') }}" aria-label="Позвонить визажисту Тине Борке для записи">Позвонить</a>
+                </div>
+                {% if footer_telegram_contact %}
+                <div class="contact-item contact-item--action">
+                    <strong>✈ Telegram:</strong>
+                    <span>Запись и быстрые вопросы</span>
+                    <a class="footer-contact-button" href="{{ footer_telegram_contact }}" target="_blank" rel="noopener" aria-label="Перейти в Telegram для записи к визажисту Тине Борке">Перейти</a>
+                </div>
+                {% endif %}
+                {% if footer_telegram_channel %}
+                <div class="contact-item contact-item--action">
+                    <strong>📣 Telegram-канал:</strong>
+                    <span>Новости, работы и полезные посты</span>
+                    <a class="footer-contact-button" href="{{ footer_telegram_channel }}" target="_blank" rel="noopener" aria-label="Перейти в Telegram-канал визажиста Тины Борке">Перейти</a>
+                </div>
+                {% endif %}
+                {% if site_settings.social_avito_url %}
+                <div class="contact-item contact-item--action">
+                    <strong>★ Авито:</strong>
+                    <span>Отзывы и профиль мастера</span>
+                    <a class="footer-contact-button" href="{{ site_settings.social_avito_url }}" target="_blank" rel="noopener" aria-label="Перейти на Авито с отзывами о визажисте Тине Борке">Перейти</a>
+                </div>
+                {% endif %}
+                {% if site_settings.social_vk_url %}
+                <div class="contact-item contact-item--action">
+                    <strong>ВКонтакте:</strong>
+                    <span>Новости, фото и связь</span>
+                    <a class="footer-contact-button" href="{{ site_settings.social_vk_url }}" target="_blank" rel="noopener" aria-label="Перейти во ВКонтакте визажиста Тины Борке">Перейти</a>
+                </div>
+                {% endif %}
+                {% if site_settings.social_tiktok_url %}
+                <div class="contact-item contact-item--action">
+                    <strong>TikTok:</strong>
+                    <span>Видео, образы и закулисье</span>
+                    <a class="footer-contact-button" href="{{ site_settings.social_tiktok_url }}" target="_blank" rel="noopener" aria-label="Перейти в TikTok визажиста Тины Борке">Перейти</a>
+                </div>
+                {% endif %}
+                {% if site_settings.contact_email %}
+                <div class="contact-item contact-item--action">
+                    <strong>✉ Email:</strong>
+                    <span>{{ site_settings.contact_email }}</span>
+                    <a class="footer-contact-button" href="mailto:{{ site_settings.contact_email }}" aria-label="Написать визажисту Тине Борке на электронную почту">Написать</a>
+                </div>
+                {% endif %}
+                <div class="contact-item">
+                    <strong>🚗 Выезд:</strong> {{ site_settings.area_served }}
+                </div>
+            </div>
+
+            <div class="footer__quick-contact">
+                <h3>Записаться на образ</h3>
+                <p class="footer__quick-text">Быстрее всего отвечаю в Telegram. Можно также позвонить или оставить заявку.</p>
+                <div class="footer__quick-actions">
+                    {% if footer_telegram_contact %}
+                    <a class="footer-action-button" href="{{ footer_telegram_contact }}" target="_blank" rel="noopener" aria-label="Записаться в Telegram к визажисту Тине Борке">Telegram</a>
+                    {% endif %}
+                    {% if site_settings.phone %}
+                    <a class="footer-action-button" href="tel:{{ site_settings.phone|replace(' ', '')|replace('-', '') }}" aria-label="Позвонить визажисту Тине Борке для записи">Позвонить</a>
+                    {% endif %}
+                    <a class="footer-action-button" href="/#consultation">Оставить заявку</a>
+                </div>
+            </div>
         </div>
-        <div class="inner-footer__contacts">
-            <a href="tel:{{ site_settings.phone|replace(' ', '')|replace('-', '') }}">{{ site_settings.phone }}</a>
-            {% if site_settings.contact_email %}
-            <a href="mailto:{{ site_settings.contact_email }}">{{ site_settings.contact_email }}</a>
-            {% endif %}
-            {% if site_settings.telegram_contact_url %}
-            <a href="{{ site_settings.telegram_contact_url }}" target="_blank" rel="noopener">✈ Telegram</a>
-            {% endif %}
-            {% if site_settings.telegram_channel_url %}
-            <a href="{{ site_settings.telegram_channel_url }}" target="_blank" rel="noopener">📣 Telegram-канал</a>
-            {% endif %}
-            {% for social in social_links or [] %}
-            <a href="{{ social.url }}" target="_blank" rel="noopener">{{ '★ Авито' if social.label == 'Авито' else social.label }}</a>
-            {% endfor %}
+
+        <div class="footer__bottom">
+            <p>&copy; 2026 Визаж & Грим от {{ site_settings.get('master_name_genitive', 'Тины Борке') }}. Все права защищены.</p>
         </div>
     </div>
 </footer>

@@ -434,6 +434,39 @@
     margin-top: 28px;
 }
 
+.service-booking {
+    margin-top: 28px;
+    padding: clamp(24px, 4vw, 34px);
+    border: 1px solid rgba(212, 175, 55, 0.28);
+    border-radius: 8px;
+    background:
+        linear-gradient(135deg, rgba(212, 175, 55, 0.14), rgba(212, 143, 122, 0.12)),
+        rgba(45, 45, 45, 0.78);
+    box-shadow: 0 18px 52px rgba(0, 0, 0, 0.18);
+}
+
+.service-booking__title {
+    margin: 0 0 12px;
+    color: var(--inner-gold);
+    font-size: clamp(1.55rem, 3vw, 2.25rem);
+    letter-spacing: 0;
+}
+
+.service-booking__text {
+    max-width: 760px;
+    margin: 0;
+    color: var(--inner-muted);
+    font-size: 1rem;
+    line-height: 1.65;
+}
+
+.service-booking__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 20px;
+}
+
 .service-section-head {
     display: flex;
     justify-content: space-between;
@@ -676,6 +709,7 @@
     }
 
     .service-actions .btn,
+    .service-booking__actions .btn,
     .portfolio-top-actions .btn {
         width: 100%;
     }
