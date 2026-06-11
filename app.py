@@ -1167,7 +1167,7 @@ class Database:
         where = "WHERE portfolio_photos.is_active = 1" if active_only else ""
         limit_clause = f"LIMIT {int(limit)}" if limit else ""
         return await self.fetch_all(f"""
-            SELECT portfolio_photos.*, portfolio_categories.title AS category_title, services.title AS service_title
+            SELECT portfolio_photos.*, portfolio_categories.title AS category_title, portfolio_categories.slug AS category_slug, services.title AS service_title
             FROM portfolio_photos
             LEFT JOIN portfolio_categories ON portfolio_categories.id = portfolio_photos.category_id
             LEFT JOIN services ON services.id = portfolio_photos.service_id
@@ -1815,6 +1815,7 @@ async def read_root(request: Request):
         service_groups = await db.get_services_by_group()
         services = service_groups["all_services"]
         reviews = await db.get_reviews(global_only=True)
+        portfolio_photos = await db.get_portfolio_photos(active_only=True, limit=6)
         social_links = get_social_links(site_settings)
         canonical_url = absolute_url("/", request)
         seo_title = truncate_meta(
@@ -1857,6 +1858,7 @@ async def read_root(request: Request):
             "popular_services": service_groups["popular_services"],
             "main_services": service_groups["main_services"],
             "additional_services": service_groups["additional_services"],
+            "portfolio_photos": portfolio_photos,
             "reviews": reviews,
             "social_links": social_links,
             "canonical_url": canonical_url,

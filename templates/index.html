@@ -28,7 +28,7 @@
 
     {% include "_favicon.html" %}
 
-    <link rel="stylesheet" href="/static/css/style.css?v=21">
+    <link rel="stylesheet" href="/static/css/style.css?v=23">
 </head>
 <body>
     <header class="header" id="header">
@@ -145,6 +145,29 @@
                 {% endif %}
             </div>
         </section>
+
+        {% if portfolio_photos %}
+        <!-- Portfolio Section -->
+        <section class="home-portfolio" id="portfolio">
+            <div class="container">
+                <div class="home-portfolio__header">
+                    <h2 class="home-portfolio__title">Портфолио</h2>
+                    <p class="home-portfolio__text">Посмотрите примеры образов для свадьбы, выпускного, фотосессии и вечернего выхода.</p>
+                </div>
+                <div class="home-portfolio__grid">
+                    {% for photo in portfolio_photos %}
+                    {% set photo_alt = photo.alt_text or photo.category_title or 'Портфолио визажиста Тины Борке' %}
+                    <a class="home-portfolio__item" href="{% if photo.category_slug %}/portfolio/{{ photo.category_slug }}{% else %}/portfolio{% endif %}" aria-label="Смотреть раздел портфолио{% if photo.category_title %}: {{ photo.category_title }}{% endif %}">
+                        <img src="{{ photo.image_path }}" alt="{{ photo_alt }}" loading="lazy">
+                    </a>
+                    {% endfor %}
+                </div>
+                <div class="home-portfolio__actions">
+                    <a href="/portfolio" class="btn btn--primary btn--lg">Смотреть все альбомы</a>
+                </div>
+            </div>
+        </section>
+        {% endif %}
 
         <!-- Events Section -->
         <section class="events" id="events">
