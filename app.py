@@ -395,6 +395,22 @@ class Database:
                         slug TEXT PRIMARY KEY,
                         deleted_at TEXT NOT NULL
                     );
+                    CREATE TABLE IF NOT EXISTS deleted_seed_blog_categories (
+                        slug TEXT PRIMARY KEY,
+                        deleted_at TEXT NOT NULL
+                    );
+                    CREATE TABLE IF NOT EXISTS deleted_seed_portfolio_categories (
+                        slug TEXT PRIMARY KEY,
+                        deleted_at TEXT NOT NULL
+                    );
+                    CREATE TABLE IF NOT EXISTS deleted_seed_reviews (
+                        review_key TEXT PRIMARY KEY,
+                        deleted_at TEXT NOT NULL
+                    );
+                    CREATE TABLE IF NOT EXISTS seed_state (
+                        key TEXT PRIMARY KEY,
+                        applied_at TEXT NOT NULL
+                    );
                     CREATE TABLE IF NOT EXISTS gallery (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         image_path TEXT NOT NULL,
@@ -565,6 +581,22 @@ class Database:
                 slug TEXT PRIMARY KEY,
                 deleted_at TEXT NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS deleted_seed_blog_categories (
+                slug TEXT PRIMARY KEY,
+                deleted_at TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS deleted_seed_portfolio_categories (
+                slug TEXT PRIMARY KEY,
+                deleted_at TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS deleted_seed_reviews (
+                review_key TEXT PRIMARY KEY,
+                deleted_at TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS seed_state (
+                key TEXT PRIMARY KEY,
+                applied_at TEXT NOT NULL
+            );
         """)
 
     async def seed_defaults(self, db):
@@ -623,24 +655,35 @@ class Database:
                 (title, slug, description, price, duration, sort_order, is_popular, service_group, seo_title, seo_description, is_active)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
             """, (title, slug, description, price, duration, sort_order, is_popular, service_group, title[:60], plain_excerpt(description)))
-        await db.execute("UPDATE services SET is_hit = 1 WHERE slug = ? AND is_hit = 0", ("lifting-makiyazh",))
-        await db.execute("UPDATE services SET duration = '1 час 30 минут' WHERE duration = ''")
-        await db.execute("UPDATE services SET service_group = 'main' WHERE service_group = ''")
-        await db.execute("UPDATE services SET is_popular = 1 WHERE slug IN ('vecherniy-makiyazh', 'lifting-makiyazh', 'svadebnyy-obraz') AND is_popular = 0")
-        await db.execute("UPDATE services SET service_group = 'additional' WHERE slug IN ('makiyazh-dlya-fotosessii', 'obuchenie-makiyazhu')")
-        await db.execute("UPDATE services SET service_includes = ? WHERE service_includes = ''", (default_service_includes,))
-        await db.execute("UPDATE services SET suitable_for = ? WHERE suitable_for = ''", (default_suitable_for,))
-        await db.execute("UPDATE blog_posts SET category = ? WHERE category IS NULL OR category = ''", (BLOG_DEFAULT_CATEGORY,))
-        await db.execute("UPDATE blog_posts SET status = 'published' WHERE status = 'draft' AND is_visible = 1 AND is_deleted = 0")
-        await db.execute("UPDATE blog_posts SET excerpt = seo_description WHERE excerpt = '' AND seo_description != ''")
-        await db.execute("UPDATE blog_posts SET excerpt = substr(text_markdown, 1, 180) WHERE excerpt = ''")
-        await db.execute("UPDATE blog_posts SET cover_image = COALESCE(first_image, cover_image) WHERE cover_image IS NULL OR cover_image = ''")
-        await db.execute("UPDATE blog_posts SET cover_alt = title WHERE cover_alt = ''")
+        async with db.execute("SELECT 1 FROM seed_state WHERE key = 'initial_backfill_v1'") as cursor:
+            initial_backfill_done = await cursor.fetchone()
+        if not initial_backfill_done:
+            await db.execute("UPDATE services SET is_hit = 1 WHERE slug = ? AND is_hit = 0", ("lifting-makiyazh",))
+            await db.execute("UPDATE services SET duration = '1 час 30 минут' WHERE duration = ''")
+            await db.execute("UPDATE services SET service_group = 'main' WHERE service_group = ''")
+            await db.execute("UPDATE services SET is_popular = 1 WHERE slug IN ('vecherniy-makiyazh', 'lifting-makiyazh', 'svadebnyy-obraz') AND is_popular = 0")
+            await db.execute("UPDATE services SET service_group = 'additional' WHERE slug IN ('makiyazh-dlya-fotosessii', 'obuchenie-makiyazhu')")
+            await db.execute("UPDATE services SET service_includes = ? WHERE service_includes = ''", (default_service_includes,))
+            await db.execute("UPDATE services SET suitable_for = ? WHERE suitable_for = ''", (default_suitable_for,))
+            await db.execute("UPDATE blog_posts SET category = ? WHERE category IS NULL OR category = ''", (BLOG_DEFAULT_CATEGORY,))
+            await db.execute("UPDATE blog_posts SET status = 'published' WHERE status = 'draft' AND is_visible = 1 AND is_deleted = 0")
+            await db.execute("UPDATE blog_posts SET excerpt = seo_description WHERE excerpt = '' AND seo_description != ''")
+            await db.execute("UPDATE blog_posts SET excerpt = substr(text_markdown, 1, 180) WHERE excerpt = ''")
+            await db.execute("UPDATE blog_posts SET cover_image = COALESCE(first_image, cover_image) WHERE cover_image IS NULL OR cover_image = ''")
+            await db.execute("UPDATE blog_posts SET cover_alt = title WHERE cover_alt = ''")
+            await db.execute(
+                "INSERT INTO seed_state (key, applied_at) VALUES (?, ?)",
+                ("initial_backfill_v1", get_moscow_time().strftime("%Y-%m-%d %H:%M:%S")),
+            )
         for index, title in enumerate(BLOG_CATEGORIES, start=1):
+            slug = slugify(title)
+            async with db.execute("SELECT 1 FROM deleted_seed_blog_categories WHERE slug = ?", (slug,)) as cursor:
+                if await cursor.fetchone():
+                    continue
             await db.execute("""
                 INSERT OR IGNORE INTO blog_categories (title, slug, sort_order)
                 VALUES (?, ?, ?)
-            """, (title, slugify(title), index * 10))
+            """, (title, slug, index * 10))
         async with db.execute("SELECT DISTINCT category FROM blog_posts WHERE category IS NOT NULL AND category != ''") as cursor:
             existing_blog_categories = await cursor.fetchall()
         for row in existing_blog_categories:
@@ -658,6 +701,9 @@ class Database:
             ("Лифтинг макияж", "lifting-makiyazh", "Деликатные лифтинг-образы с акцентом на свежесть и ухоженность.", 50),
         ]
         for title, slug, description, sort_order in default_categories:
+            async with db.execute("SELECT 1 FROM deleted_seed_portfolio_categories WHERE slug = ?", (slug,)) as cursor:
+                if await cursor.fetchone():
+                    continue
             await db.execute("""
                 INSERT OR IGNORE INTO portfolio_categories (title, slug, description, sort_order, is_active)
                 VALUES (?, ?, ?, ?, 1)
@@ -680,6 +726,10 @@ class Database:
             ("Невеста", "Спасибо за свадебный образ. Макияж выглядел нежно и красиво на фото."),
         ]
         for client_name, text in default_reviews:
+            review_key = f"{client_name}|{text}"
+            async with db.execute("SELECT 1 FROM deleted_seed_reviews WHERE review_key = ?", (review_key,)) as cursor:
+                if await cursor.fetchone():
+                    continue
             await db.execute("""
                 INSERT INTO reviews (client_name, text, created_at, is_active)
                 SELECT ?, ?, ?, 1
@@ -1002,6 +1052,13 @@ class Database:
             )
 
     async def delete_review(self, review_id: int):
+        review = await self.fetch_one("SELECT client_name, text FROM reviews WHERE id = ?", (review_id,))
+        if review:
+            await self.execute("""
+                INSERT INTO deleted_seed_reviews (review_key, deleted_at)
+                VALUES (?, ?)
+                ON CONFLICT(review_key) DO UPDATE SET deleted_at = excluded.deleted_at
+            """, (f"{review['client_name']}|{review['text']}", get_moscow_time().strftime("%Y-%m-%d %H:%M:%S")))
         await self.execute("DELETE FROM reviews WHERE id = ?", (review_id,))
 
     async def get_gallery(self, active_only: bool = True) -> list[dict]:
@@ -1083,6 +1140,13 @@ class Database:
             """, values)
 
     async def delete_portfolio_category(self, category_id: int):
+        category = await self.fetch_one("SELECT slug FROM portfolio_categories WHERE id = ?", (category_id,))
+        if category:
+            await self.execute("""
+                INSERT INTO deleted_seed_portfolio_categories (slug, deleted_at)
+                VALUES (?, ?)
+                ON CONFLICT(slug) DO UPDATE SET deleted_at = excluded.deleted_at
+            """, (category["slug"], get_moscow_time().strftime("%Y-%m-%d %H:%M:%S")))
         await self.execute("""
             UPDATE portfolio_categories
             SET is_deleted = 1, is_active = 0
@@ -1197,9 +1261,14 @@ class Database:
             """, (title, slug, sort_order))
 
     async def delete_blog_category(self, category_id: int):
-        category = await self.fetch_one("SELECT title FROM blog_categories WHERE id = ?", (category_id,))
+        category = await self.fetch_one("SELECT title, slug FROM blog_categories WHERE id = ?", (category_id,))
         if not category or category["title"] == BLOG_DEFAULT_CATEGORY:
             return
+        await self.execute("""
+            INSERT INTO deleted_seed_blog_categories (slug, deleted_at)
+            VALUES (?, ?)
+            ON CONFLICT(slug) DO UPDATE SET deleted_at = excluded.deleted_at
+        """, (category["slug"], get_moscow_time().strftime("%Y-%m-%d %H:%M:%S")))
         await self.ensure_blog_category(BLOG_DEFAULT_CATEGORY)
         await self.execute(
             "UPDATE blog_posts SET category = ? WHERE category = ?",
